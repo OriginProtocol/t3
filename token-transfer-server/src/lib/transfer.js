@@ -192,7 +192,7 @@ async function confirmTransfer(transfer, user) {
  * @param {Token} token: An instance of the token library (@origin/token)
  * @returns {Promise<String|Boolean>} Hash of the transaction
  */
-async function executeTransfer(transfer, transferTaskId, token) {
+async function executeTransfer(transfer, transferTaskId) {
   const balance = await getBalance(transfer.userId)
 
   // Add the current transfer to the balance because it is the one we are processing

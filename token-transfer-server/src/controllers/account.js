@@ -9,7 +9,7 @@ const { ip2geo } = require('../lib/ip2geo')
 const {
   isEthereumAddress,
   isExistingAddress,
-  isExistingNickname
+  isExistingNickname,
 } = require('../validators')
 const { Account } = require('../models')
 const logger = require('../logger')
@@ -21,9 +21,9 @@ router.get(
   ensureLoggedIn,
   asyncMiddleware(async (req, res) => {
     const accounts = await Account.findAll({
-      where: { userId: req.user.id }
+      where: { userId: req.user.id },
     })
-    res.json(accounts.map(a => a.get({ plain: true })))
+    res.json(accounts.map((a) => a.get({ plain: true })))
   })
 )
 
@@ -33,13 +33,9 @@ router.get(
 router.post(
   '/accounts',
   [
-    check('nickname')
-      .isString()
-      .custom(isExistingNickname),
-    check('address')
-      .custom(isEthereumAddress)
-      .custom(isExistingAddress),
-    ensureLoggedIn
+    check('nickname').isString().custom(isExistingNickname),
+    check('address').custom(isEthereumAddress).custom(isExistingAddress),
+    ensureLoggedIn,
   ],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
@@ -52,7 +48,7 @@ router.post(
     const account = await Account.create({
       userId: req.user.id,
       nickname: req.body.nickname,
-      address: req.body.address
+      address: req.body.address,
     })
 
     logger.info(
@@ -83,7 +79,7 @@ router.post(
         .send(`ip_addr=${ip || ''}`)
         .send(`country_code=${countryCode || ''}`)
         .then(
-          response => {
+          (response) => {
             if (response.body.success) {
               logger.info(
                 `Added ${req.body.address} to wallet insights for ${req.user.email}`
@@ -94,7 +90,7 @@ router.post(
               )
             }
           },
-          error => {
+          (error) => {
             logger.warn(
               `Could not add ${req.body.address} to wallet insights for ${req.user.email}: ${error.response.body}`
             )
@@ -114,7 +110,7 @@ router.delete(
   ensureLoggedIn,
   asyncMiddleware(async (req, res) => {
     const account = await Account.findOne({
-      where: { id: req.params.accountId, userId: req.user.id }
+      where: { id: req.params.accountId, userId: req.user.id },
     })
     if (!account) {
       res.status(404).end()

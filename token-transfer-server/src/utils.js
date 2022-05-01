@@ -6,7 +6,7 @@ const {
   earlyLockupsEnabled,
   lockupsEnabled,
   otcRequestEnabled,
-  unlockDate
+  unlockDate,
 } = require('./config')
 
 const lock = new AsyncLock()
@@ -14,7 +14,7 @@ const lock = new AsyncLock()
 /**
  * Allows use of async functions for an Express route.
  */
-const asyncMiddleware = fn => (req, res, next) => {
+const asyncMiddleware = (fn) => (req, res, next) => {
   Promise.resolve(fn(req, res, next)).catch(next)
 }
 
@@ -39,7 +39,7 @@ const getOtcRequestEnabled = () => {
 }
 
 // Get fingerprint data about the current device
-const getFingerprintData = async req => {
+const getFingerprintData = async (req) => {
   // Parsed user agent from express-useragent
   const device = req.useragent
   return {
@@ -51,11 +51,11 @@ const getFingerprintData = async req => {
       isDesktop: device.isDesktop,
       platform: device.platform,
       version: device.version,
-      os: device.os
+      os: device.os,
     },
     location: await ip2geo(
       req.headers['x-real-ip'] || req.headers['x-forwarded-for']
-    )
+    ),
   }
 }
 
@@ -66,5 +66,5 @@ module.exports = {
   getFingerprintData,
   getOtcRequestEnabled,
   getUnlockDate,
-  lock
+  lock,
 }
