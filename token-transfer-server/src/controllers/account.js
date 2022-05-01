@@ -2,10 +2,10 @@ const express = require('express')
 const router = express.Router()
 const { check, validationResult } = require('express-validator')
 const request = require('superagent')
-const { ip2geo } = require('@origin/ip2geo')
 
 const { asyncMiddleware } = require('../utils')
 const { ensureLoggedIn } = require('../lib/login')
+const { ip2geo } = require('../lib/ip2geo')
 const {
   isEthereumAddress,
   isExistingAddress,
