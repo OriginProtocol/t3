@@ -1,8 +1,6 @@
 const cron = require('node-cron')
 const logger = require('./logger')
 
-const Token = require('@origin/token/src/token')
-
 const { executeTransfers } = require('./tasks/transfer')
 
 try {
@@ -35,15 +33,15 @@ const sessionConfig = {
     secure: false,
     // 30 minute TTL
     maxAge: 30 * 60 * 1000,
-    httpOnly: true
+    httpOnly: true,
   },
   resave: false, // Do not force session to get saved if it was not modified by the request.
   saveUninitialized: true,
   secret: sessionSecret,
   store: new SQLiteStore({
     dir: path.resolve(__dirname + '/../data'),
-    db: 'sessions.sqlite3'
-  })
+    db: 'sessions.sqlite3',
+  }),
 }
 
 if (app.get('env') === 'production') {
@@ -55,7 +53,7 @@ if (app.get('env') === 'production') {
     cors({
       origin: 'http://localhost:3000',
       credentials: true,
-      exposedHeaders: ['X-Authenticated-Email']
+      exposedHeaders: ['X-Authenticated-Email'],
     })
   )
 }
@@ -65,7 +63,7 @@ if (process.env.HEROKU) {
   // Whitelisted domains
   const corsWhitelist = [
     'https://investor.originprotocol.com',
-    'https://team.originprotocol.com'
+    'https://team.originprotocol.com',
   ]
 
   app.use(
@@ -78,7 +76,7 @@ if (process.env.HEROKU) {
         }
       },
       credentials: true,
-      exposedHeaders: ['X-Authenticated-Email']
+      exposedHeaders: ['X-Authenticated-Email'],
     })
   )
 }
@@ -100,9 +98,9 @@ app.use(useragent.express())
 app.use(require('./controllers'))
 
 // Catch all
-app.all('*', function(req, res) {
+app.all('*', function (req, res) {
   res.status(404).send({
-    errors: ['The page you are looking for does not exist']
+    errors: ['The page you are looking for does not exist'],
   })
 })
 
@@ -115,8 +113,7 @@ app.listen(port, () => {
   logger.info(`Listening on port ${port}`)
   if (hasWallet) {
     // Setup token library
-    const token = new Token(networkId)
-    cron.schedule('*/10 * * * * *', () => executeTransfers(token))
+    cron.schedule('*/10 * * * * *', () => executeTransfers())
   } else {
     logger.warn('Not wallet mnemonic found, not executing any transfers')
   }

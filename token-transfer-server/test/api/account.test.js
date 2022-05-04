@@ -9,7 +9,6 @@ process.env.SENDGRID_FROM_EMAIL = 'test@test.com'
 process.env.SENDGRID_API_KEY = 'test'
 process.env.ENCRYPTION_SECRET = 'test'
 process.env.SESSION_SECRET = 'test'
-
 const app = require('../../src/app')
 
 describe('Account HTTP API', () => {
@@ -20,21 +19,21 @@ describe('Account HTTP API', () => {
 
     this.user = await User.create({
       email: 'user@originprotocol.com',
-      name: 'User 1'
+      name: 'User 1',
     })
 
     this.user2 = await User.create({
       email: 'user2@originprotocol.com',
-      name: 'User 2'
+      name: 'User 2',
     })
 
     this.mockApp = express()
     this.mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user.id
+          user: this.user.id,
         },
-        twoFA: 'totp'
+        twoFA: 'totp',
       }
       next()
     })
@@ -85,7 +84,7 @@ describe('Account HTTP API', () => {
     await Account.create({
       userId: this.user.id,
       nickname: nickname,
-      address: address
+      address: address,
     })
 
     await request(this.mockApp)
@@ -109,7 +108,7 @@ describe('Account HTTP API', () => {
     await Account.create({
       userId: this.user.id,
       nickname: nickname,
-      address: address
+      address: address,
     })
 
     await request(this.mockApp)
@@ -133,7 +132,7 @@ describe('Account HTTP API', () => {
     await Account.create({
       userId: this.user.id,
       nickname: nickname,
-      address: address
+      address: address,
     })
 
     const response = await request(this.mockApp)
@@ -150,7 +149,7 @@ describe('Account HTTP API', () => {
     await Account.create({
       userId: this.user2.id,
       nickname: nickname,
-      address: address
+      address: address,
     })
 
     const response = await request(this.mockApp)
@@ -171,7 +170,7 @@ describe('Account HTTP API', () => {
     const account = await Account.create({
       userId: this.user.id,
       nickname: nickname,
-      address: address
+      address: address,
     })
 
     await request(this.mockApp)
@@ -179,7 +178,7 @@ describe('Account HTTP API', () => {
       .expect(204)
 
     const accountAfterDelete = await Account.findOne({
-      where: { id: account.id }
+      where: { id: account.id },
     })
 
     expect(accountAfterDelete).to.equal(null)
@@ -192,7 +191,7 @@ describe('Account HTTP API', () => {
     const account = await Account.create({
       userId: this.user2.id,
       nickname: nickname,
-      address: address
+      address: address,
     })
 
     await request(this.mockApp)
@@ -200,7 +199,7 @@ describe('Account HTTP API', () => {
       .expect(404)
 
     const accountAfterDelete = await Account.findOne({
-      where: { id: account.id }
+      where: { id: account.id },
     })
 
     expect(accountAfterDelete.id).to.equal(account.id)

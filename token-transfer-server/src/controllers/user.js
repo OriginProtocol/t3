@@ -13,13 +13,13 @@ const { asyncMiddleware } = require('../utils')
 const {
   isValidTotp,
   isRecentlyValidTotp,
-  isValidNewTotp
+  isValidNewTotp,
 } = require('../validators')
 const { encrypt } = require('../lib/crypto')
 
 const {
   Lockup,
-  Sequelize: { Op }
+  Sequelize: { Op },
 } = require('../models')
 
 const logger = require('../logger')
@@ -40,7 +40,7 @@ router.get(
         'revisedScheduleAgreedAt',
         'revisedScheduleRejected',
         'termsAgreedAt',
-        'investorType'
+        'investorType',
       ])
     )
   })
@@ -54,19 +54,11 @@ router.post(
       .not()
       .isEmpty()
       .withMessage('Phone must not be empty'),
-    check('revisedScheduleAgreedAt')
-      .optional()
-      .isRFC3339(),
-    check('termsAgreedAt')
-      .optional()
-      .isRFC3339(),
-    check('email')
-      .optional()
-      .isEmail(),
-    check('code')
-      .optional()
-      .custom(isValidTotp),
-    ensureLoggedIn
+    check('revisedScheduleAgreedAt').optional().isRFC3339(),
+    check('termsAgreedAt').optional().isRFC3339(),
+    check('email').optional().isEmail(),
+    check('code').optional().custom(isValidTotp),
+    ensureLoggedIn,
   ],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
@@ -92,10 +84,7 @@ router.post(
     if (req.body.email) {
       // Email or 2FA update requires 2FA code
       if (!req.body.code) {
-        res
-          .status(422)
-          .send('Invalid OTP code')
-          .end()
+        res.status(422).send('Invalid OTP code').end()
         return
       }
       toUpdate.email = req.body.email
@@ -115,10 +104,8 @@ router.post(
   [
     check('otpKey').optional(),
     check('oldCode').custom(isRecentlyValidTotp),
-    check('newCode')
-      .optional()
-      .custom(isValidNewTotp),
-    ensureLoggedIn
+    check('newCode').optional().custom(isValidNewTotp),
+    ensureLoggedIn,
   ],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
@@ -139,9 +126,9 @@ router.post(
           const webhookData = {
             embeds: [
               {
-                title: `2FA reset by \`${req.user.email}\``
-              }
-            ]
+                title: `2FA reset by \`${req.user.email}\``,
+              },
+            ],
           }
           await postToWebhook(discordWebhookUrl, JSON.stringify(webhookData))
         }
@@ -149,7 +136,7 @@ router.post(
         logger.error(`Failed sending Discord webhook for 2FA reset:`, e)
       }
       // Nothing to do now, sucessfully reset
-      res.send(200).end()
+      res.sendStatus(200).end()
     } else {
       // Received existing OTP code, generate a new key and send it with a QR
       // code that the user can use to verify their setup
@@ -164,10 +151,7 @@ router.post(
         `&issuer=OriginProtocol`
       const otpQrUrl = await qrcode.toDataURL(otpUrl)
       // Send back the QR code and URL back
-      res
-        .status(200)
-        .send({ otpUrl, otpQrUrl, encodedKey, otpKey })
-        .end()
+      res.status(200).send({ otpUrl, otpQrUrl, encodedKey, otpKey }).end()
     }
   })
 )
@@ -179,19 +163,19 @@ router.get('/user-stats', async (req, res) => {
       col: 'userId',
       where: {
         end: {
-          [Op.gt]: Date.now()
+          [Op.gt]: Date.now(),
         },
-        confirmed: true
-      }
+        confirmed: true,
+      },
     }),
     lockupSum: await Lockup.sum('amount', {
       where: {
         end: {
-          [Op.gt]: Date.now()
+          [Op.gt]: Date.now(),
         },
-        confirmed: true
-      }
-    })
+        confirmed: true,
+      },
+    }),
   })
 })
 

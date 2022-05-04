@@ -3,21 +3,21 @@ const Sequelize = require('sequelize')
 
 const {
   largeTransferThreshold,
-  largeTransferDelayMinutes
+  largeTransferDelayMinutes,
 } = require('../config')
 const { Transfer, TransferTask, sequelize } = require('../models')
 const { checkBlockConfirmation, executeTransfer } = require('../lib/transfer')
 const logger = require('../logger')
 const enums = require('../enums')
 
-const executeTransfers = async token => {
+const executeTransfers = async () => {
   logger.info('Running execute transfers job...')
 
   const confirmingTransfers = await Transfer.findAll({
     where: {
-      status: enums.TransferStatuses.WaitingConfirmation
+      status: enums.TransferStatuses.WaitingConfirmation,
     },
-    order: [['updated_at', 'ASC']]
+    order: [['updated_at', 'ASC']],
   })
 
   if (confirmingTransfers && confirmingTransfers.length > 0) {
@@ -25,7 +25,7 @@ const executeTransfers = async token => {
       `Found ${confirmingTransfers.length} transfer(s) waiting for block confirmation`
     )
     for (const transfer of confirmingTransfers) {
-      const isConfirmed = await checkBlockConfirmation(transfer, token)
+      const isConfirmed = await checkBlockConfirmation(transfer)
       if (!isConfirmed) {
         logger.info(
           `Transfer ${transfer.id} with hash ${transfer.txHash} not confirmed, exiting`
@@ -37,12 +37,12 @@ const executeTransfers = async token => {
 
   const transferTask = await sequelize.transaction(
     { isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE },
-    async txn => {
+    async (txn) => {
       const outstandingTasks = await TransferTask.findAll(
         {
           where: {
-            end: null
-          }
+            end: null,
+          },
         },
         { transaction: txn }
       )
@@ -54,8 +54,8 @@ const executeTransfers = async token => {
       const processingTransfers = await Transfer.findAll(
         {
           where: {
-            status: enums.TransferStatuses.Processing
-          }
+            status: enums.TransferStatuses.Processing,
+          },
         },
         { transaction: txn }
       )
@@ -69,7 +69,7 @@ const executeTransfers = async token => {
         {
           start: now,
           created_at: now,
-          updated_at: now
+          updated_at: now,
         },
         { transaction: txn }
       )
@@ -85,27 +85,27 @@ const executeTransfers = async token => {
         {
           status: enums.TransferStatuses.Enqueued,
           amount: { [Sequelize.Op.gte]: largeTransferThreshold },
-          createdAt: { [Sequelize.Op.lte]: cutoffTime }
+          createdAt: { [Sequelize.Op.lte]: cutoffTime },
         },
         {
           status: enums.TransferStatuses.Enqueued,
-          amount: { [Sequelize.Op.lt]: largeTransferThreshold }
-        }
-      ]
+          amount: { [Sequelize.Op.lt]: largeTransferThreshold },
+        },
+      ],
     },
-    order: [['updated_at', 'ASC']]
+    order: [['updated_at', 'ASC']],
   })
 
   if (transfer) {
     logger.info(`Processing transfer ${transfer.id}`)
-    await executeTransfer(transfer, transferTask.id, token)
+    await executeTransfer(transfer, transferTask.id)
   }
 
   await transferTask.update({
-    end: moment.utc()
+    end: moment.utc(),
   })
 }
 
 module.exports = {
-  executeTransfers
+  executeTransfers,
 }

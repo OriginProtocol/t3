@@ -1,3 +1,6 @@
+const fs = require('fs')
+const ethers = require('ethers')
+
 require('dotenv').config()
 
 const moment = require('moment')
@@ -5,8 +8,18 @@ const moment = require('moment')
 const logger = require('./logger')
 const {
   transferConfirmationTimeout,
-  lockupConfirmationTimeout
+  lockupConfirmationTimeout,
 } = require('./shared')
+const { ContractMock } = require('../test/contract-mock')
+
+const MAINNET_NETWORK_ID = 1
+const ROPSTEN_NETWORK_ID = 3
+const RINKEBY_NETWORK_ID = 4
+const LOCAL_NETWORK_ID = 31337
+const TEST_NETWORK_ID = 999
+
+const DEFAULT_MNEMONIC =
+  'replace hover unaware super where filter stone fine garlic address matrix basic'
 
 const discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || null
 
@@ -16,7 +29,10 @@ if (!encryptionSecret) {
   process.exit(1)
 }
 
-const networkId = Number.parseInt(process.env.NETWORK_ID) || 999
+const networkId =
+  process.env.NODE_ENV === 'test'
+    ? TEST_NETWORK_ID
+    : parseInt(process.env.NETWORK_ID)
 
 const port = process.env.PORT || 5000
 
@@ -85,6 +101,116 @@ const lockupsEnabled = process.env.LOCKUPS_ENABLED || true
 // Whether OTC requests are enabled
 const otcRequestEnabled = process.env.OTC_REQUEST_ENABLED || false
 
+const createProviderAndSigner = () => {
+  let providerUrl, signer, mnemonic, privateKey
+
+  switch (networkId) {
+    case MAINNET_NETWORK_ID:
+      privateKey = process.env.MAINNET_PRIVATE_KEY
+      mnemonic = process.env.MAINNET_MNEMONIC
+      if (!privateKey && !mnemonic) {
+        throw 'Must have either MAINNET_PRIVATE_KEY or MAINNET_MNEMONIC env var'
+      }
+      if (!process.env.MAINNET_PROVIDER_URL) {
+        throw 'Missing MAINNET_PROVIDER_URL env var'
+      }
+      providerUrl = process.env.MAINNET_PROVIDER_URL
+      break
+    case ROPSTEN_NETWORK_ID:
+      privateKey = process.env.ROPSTEN_PRIVATE_KEY
+      mnemonic = process.env.ROPSTEN_MNEMONIC
+      if (!privateKey && !mnemonic) {
+        throw 'Must have either ROPSTEN_PRIVATE_KEY or ROPSTEN_MNEMONIC env var'
+      }
+      if (!process.env.ROPSTEN_PROVIDER_URL) {
+        throw 'Missing ROPSTEN_PROVIDER_URL env var'
+      }
+      providerUrl = process.env.ROPSTEN_PROVIDER_URL
+      break
+    case RINKEBY_NETWORK_ID:
+      privateKey = process.env.RINKEBY_PRIVATE_KEY
+      mnemonic = process.env.RINKEBY_MNEMONIC
+      if (!privateKey && !mnemonic) {
+        throw 'Must have either RINKEBY_PRIVATE_KEY or RINKEBY_MNEMONIC env var'
+      }
+      if (!process.env.RINKEBY_PROVIDER_URL) {
+        throw 'Missing RINKEBY_PROVIDER_URL env var'
+      }
+      providerUrl = process.env.RINKEBY_PROVIDER_URL
+      break
+    case LOCAL_NETWORK_ID:
+      privateKey = process.env.LOCAL_PRIVATE_KEY
+      mnemonic = process.env.LOCAL_MNEMONIC || DEFAULT_MNEMONIC
+      providerUrl = 'http://localhost:8545'
+      break
+    case TEST_NETWORK_ID:
+      privateKey = process.env.LOCAL_PRIVATE_KEY
+      mnemonic = DEFAULT_MNEMONIC
+      providerUrl = 'http://localhost:8545'
+      break
+    default:
+      throw `Unsupported network id ${process.env.NETWORK_ID}`
+  }
+
+  const provider = new ethers.providers.JsonRpcProvider(providerUrl)
+
+  if (privateKey) {
+    signer = new ethers.Wallet(privateKey)
+  } else {
+    signer = new ethers.Wallet.fromMnemonic(mnemonic)
+  }
+
+  signer = signer.connect(provider)
+
+  return { provider, signer }
+}
+
+const { provider, signer } = createProviderAndSigner()
+
+const ERC20_ABI = [
+  // Read-Only Functions
+  'function balanceOf(address owner) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+  'function symbol() view returns (string)',
+  // Authenticated Functions
+  'function transfer(address to, uint amount) returns (bool)',
+  // Events
+  'event Transfer(address indexed from, address indexed to, uint amount)',
+]
+
+const createTokenContract = () => {
+  let contract
+
+  // OGN addresses
+  const addresses = {
+    mainnet: '0x8207c1ffc5b6804f6024322ccf34f29c3541ae26',
+    rinkeby: '0xa115e16ef6e217f7a327a57031f75ce0487aadb8',
+  }
+
+  switch (networkId) {
+    case MAINNET_NETWORK_ID:
+      contract = new ethers.Contract(addresses.mainnet, ERC20_ABI, provider)
+      break
+    case RINKEBY_NETWORK_ID:
+      contract = new ethers.Contract(addresses.rinkeby, ERC20_ABI, provider)
+      break
+    case LOCAL_NETWORK_ID:
+      const definitions = JSON.parse(
+        fs.readFileSync('contracts.localhost.json')
+      )
+      contract = new ethers.Contract(definitions.address, ERC20_ABI, provider)
+    case TEST_NETWORK_ID:
+      contract = new ContractMock()
+      break
+    default:
+      throw `Unsupported network ID: ${process.env.NETWORK_ID}`
+  }
+
+  return contract
+}
+
+const contract = createTokenContract()
+
 module.exports = {
   discordWebhookUrl,
   encryptionSecret,
@@ -107,5 +233,8 @@ module.exports = {
   largeTransferDelayMinutes,
   gasPriceMultiplier,
   transferConfirmationTimeout,
-  otcRequestEnabled
+  otcRequestEnabled,
+  provider,
+  signer,
+  contract,
 }

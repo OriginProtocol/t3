@@ -1,6 +1,6 @@
 const AsyncLock = require('async-lock')
 
-const { ip2geo } = require('../lib/ip2geo')
+const { ip2geo } = require('./lib/ip2geo')
 
 const {
   earlyLockupsEnabled,

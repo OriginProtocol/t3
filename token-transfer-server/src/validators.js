@@ -1,12 +1,12 @@
-const Web3 = require('web3')
+const ethers = require('ethers')
 const totp = require('notp').totp
 
 const { Account } = require('./models')
 const { decrypt } = require('./lib/crypto')
 
 // Validator for validating an Ethereum address
-const isEthereumAddress = value => {
-  if (!Web3.utils.isAddress(value)) {
+const isEthereumAddress = (value) => {
+  if (!ethers.utils.isAddress(value)) {
     throw new Error('Address is not a valid Ethereum address')
   }
   return true
@@ -17,9 +17,9 @@ const isExistingAddress = (value, { req }) => {
   return Account.findOne({
     where: {
       userId: req.user.id,
-      address: value
-    }
-  }).then(account => {
+      address: value,
+    },
+  }).then((account) => {
     if (account) {
       throw new Error('Address already exists')
     }
@@ -32,9 +32,9 @@ const isExistingNickname = (value, { req }) => {
   return Account.findOne({
     where: {
       userId: req.user.id,
-      nickname: value
-    }
-  }).then(account => {
+      nickname: value,
+    },
+  }).then((account) => {
     if (account) {
       throw new Error('Nickname already exists')
     }
@@ -83,5 +83,5 @@ module.exports = {
   isExistingNickname,
   isValidTotp,
   isRecentlyValidTotp,
-  isValidNewTotp
+  isValidNewTotp,
 }

@@ -34,19 +34,19 @@ describe('Login HTTP API', () => {
       otpKey: encryptedKey,
       otpVerified: true,
       revisedScheduleAgreedAt: moment(),
-      termsAgreedAt: moment().subtract(1, 'hours')
+      termsAgreedAt: moment().subtract(1, 'hours'),
     })
 
     this.user2 = await User.create({
       email: 'user2@originprotocol.com',
       name: 'User 2',
-      otpKey: '123'
+      otpKey: '123',
     })
 
     this.user3 = await User.create({
       email: 'user3@originprotocol.com',
       name: 'User 3',
-      otpVerified: true
+      otpVerified: true,
     })
   })
 
@@ -60,7 +60,7 @@ describe('Login HTTP API', () => {
   it('should verify a valid email token', async () => {
     const token = jwt.sign(
       {
-        email: this.user.email
+        email: this.user.email,
       },
       process.env.ENCRYPTION_SECRET,
       { expiresIn: '5m' }
@@ -78,7 +78,7 @@ describe('Login HTTP API', () => {
   it('should verify and return data correctly for second user', async () => {
     const token = jwt.sign(
       {
-        email: this.user2.email
+        email: this.user2.email,
       },
       process.env.ENCRYPTION_SECRET,
       { expiresIn: '5m' }
@@ -96,7 +96,7 @@ describe('Login HTTP API', () => {
   it('should verify and return data correctly for third user', async () => {
     const token = jwt.sign(
       {
-        email: this.user3.email
+        email: this.user3.email,
       },
       process.env.ENCRYPTION_SECRET,
       { expiresIn: '5m' }
@@ -114,7 +114,7 @@ describe('Login HTTP API', () => {
   it('should reject an invalid token', async () => {
     const token = jwt.sign(
       {
-        email: this.user.email
+        email: this.user.email,
       },
       'Invalid Encryption Secret',
       { expiresIn: '5m' }
@@ -131,8 +131,8 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
@@ -153,8 +153,8 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
@@ -175,8 +175,8 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
@@ -199,8 +199,8 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
@@ -223,15 +223,15 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
     mockApp.use(app)
 
     await this.user2.update({
-      revisedScheduleAgreedAt: moment().subtract(10, 'minutes')
+      revisedScheduleAgreedAt: moment().subtract(10, 'minutes'),
     })
 
     const revisedScheduleAgreedAt = moment()
@@ -250,15 +250,15 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
     mockApp.use(app)
 
     await this.user2.update({
-      termsAgreedAt: moment().subtract(10, 'minutes')
+      termsAgreedAt: moment().subtract(10, 'minutes'),
     })
 
     const termsAgreedAt = moment()
@@ -278,16 +278,14 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user.id
-        }
+          user: this.user.id,
+        },
       }
       next()
     })
     mockApp.use(app)
 
-    await request(mockApp)
-      .post('/api/setup_totp')
-      .expect(401)
+    await request(mockApp).post('/api/setup_totp').expect(401)
   })
 
   it('should allow setup of totp if not verified', async () => {
@@ -295,16 +293,14 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user2.id
-        }
+          user: this.user2.id,
+        },
       }
       next()
     })
     mockApp.use(app)
 
-    const response = await request(mockApp)
-      .post('/api/setup_totp')
-      .expect(200)
+    const response = await request(mockApp).post('/api/setup_totp').expect(200)
 
     expect(response.body.email).to.equal(this.user2.email)
     expect(response.body.otpKey).to.be.a('string')
@@ -316,8 +312,8 @@ describe('Login HTTP API', () => {
     mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user.id
-        }
+          user: this.user.id,
+        },
       }
       next()
     })
@@ -335,8 +331,8 @@ describe('Login HTTP API', () => {
 
     const events = await Event.findAll({ where: { userId: this.user.id } })
     expect(events.length).to.equal(1)
-    expect(events[0].data.device.browser).to.equal('node-superagent')
-    expect(events[0].data.device.version).to.equal('3.8.3')
+    expect(events[0].data.device.browser).to.equal('unknown')
+    expect(events[0].data.device.version).to.equal('unknown')
     expect(events[0].data.device.platform).to.equal('unknown')
     // TODO stub the return from ip2geo
     expect(events[0].data.location).to.equal(null)
@@ -348,8 +344,8 @@ describe('Login HTTP API', () => {
       req.session = {
         twoFA: true,
         passport: {
-          user: this.user.id
-        }
+          user: this.user.id,
+        },
       }
       next()
     })
@@ -367,8 +363,8 @@ describe('Login HTTP API', () => {
       req.session = {
         twoFA: true,
         passport: {
-          user: this.user.id
-        }
+          user: this.user.id,
+        },
       }
       next()
     })
@@ -393,8 +389,8 @@ describe('Login HTTP API', () => {
       req.session = {
         twoFA: true,
         passport: {
-          user: this.user.id
-        }
+          user: this.user.id,
+        },
       }
       next()
     })
@@ -428,8 +424,8 @@ describe('Login HTTP API', () => {
       req.session = {
         twoFA: true,
         passport: {
-          user: this.user.id
-        }
+          user: this.user.id,
+        },
       }
       next()
     })

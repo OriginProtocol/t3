@@ -12,11 +12,10 @@ const enums = require('../../src/enums')
 const {
   addTransfer,
   confirmTransfer,
-  executeTransfer
+  executeTransfer,
 } = require('../../src/lib/transfer')
 const { Grant, Transfer, User, sequelize } = require('../../src/models')
 const { transferConfirmationTimeout } = require('../../src/config')
-const { TokenMock } = require('../util')
 
 const toAddress = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 
@@ -30,7 +29,7 @@ describe('Token transfer library', () => {
       email: 'user@originprotocol.com',
       name: 'User 1',
       otpKey: '123',
-      otpVerified: true
+      otpVerified: true,
     })
 
     this.grant = await Grant.create({
@@ -38,7 +37,7 @@ describe('Token transfer library', () => {
       start: new Date('2014-10-10'),
       end: new Date('2018-10-10'),
       cliff: new Date('2015-10-10'),
-      amount: 100000
+      amount: 100000,
     })
   })
 
@@ -71,7 +70,7 @@ describe('Token transfer library', () => {
       start: new Date('2014-10-10'),
       end: new Date('2018-10-10'),
       cliff: new Date('2015-10-10'),
-      amount: 1
+      amount: 1,
     })
     const amount = 100001
     const transfer = await addTransfer(this.user.id, toAddress, amount)
@@ -98,7 +97,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.Failed,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -117,7 +116,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.Cancelled,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -136,7 +135,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.Expired,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -155,15 +154,12 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     // Go forward in time to expire the transfer
     const clock = sinon.useFakeTimers(
-      moment
-        .utc()
-        .add(transferConfirmationTimeout, 'm')
-        .valueOf()
+      moment.utc().add(transferConfirmationTimeout, 'm').valueOf()
     )
 
     const amount = 99999
@@ -189,7 +185,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -204,7 +200,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.Enqueued,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -219,7 +215,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.Paused,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -234,7 +230,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.WaitingConfirmation,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -249,7 +245,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.Success,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     const amount = 99999
@@ -264,14 +260,14 @@ describe('Token transfer library', () => {
       enums.TransferStatuses.Enqueued,
       enums.TransferStatuses.Paused,
       enums.TransferStatuses.WaitingConfirmation,
-      enums.TransferStatuses.Success
-    ].map(status => {
+      enums.TransferStatuses.Success,
+    ].map((status) => {
       return Transfer.create({
         userId: this.user.id,
         status: status,
         toAddress: toAddress,
         amount: 2,
-        currency: 'OGN'
+        currency: 'OGN',
       })
     })
 
@@ -290,8 +286,8 @@ describe('Token transfer library', () => {
     // Enqueue and execute a transfer
     const amount = 1000
     const transfer = await addTransfer(this.user.id, toAddress, amount)
-    const txHash = await executeTransfer(transfer, null, new TokenMock())
-    expect(txHash).to.equal('testTxHash')
+    const txHash = await executeTransfer(transfer)
+    expect(txHash).to.equal('0x0')
 
     // Check the transfer row was updated as expected.
     transfer.reload()
@@ -306,7 +302,7 @@ describe('Token transfer library', () => {
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency: 'OGN',
     })
 
     await confirmTransfer(transfer, this.user)
@@ -322,20 +318,20 @@ describe('Token transfer library', () => {
         enums.TransferStatuses.Success,
         enums.TransferStatuses.Failed,
         enums.TransferStatuses.Cancelled,
-        enums.TransferStatuses.Expired
-      ].map(status => {
+        enums.TransferStatuses.Expired,
+      ].map((status) => {
         return Transfer.create({
           userId: this.user.id,
           status: status,
           toAddress: toAddress,
           amount: 2,
-          currency: 'OGN'
+          currency: 'OGN',
         })
       })
     )
 
     await Promise.all(
-      transfers.map(async transfer => {
+      transfers.map(async (transfer) => {
         await expect(confirmTransfer(transfer)).to.eventually.be.rejectedWith(
           /is not waiting for confirmation/
         )
@@ -350,7 +346,7 @@ describe('Token transfer library', () => {
       toAddress: toAddress,
       amount: 1,
       currency: 'OGN',
-      createdAt: moment().subtract(10, 'minutes')
+      createdAt: moment().subtract(10, 'minutes'),
     })
     await expect(
       confirmTransfer(transfer, this.user)

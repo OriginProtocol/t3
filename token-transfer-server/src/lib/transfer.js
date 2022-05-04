@@ -1,15 +1,16 @@
 const BigNumber = require('bignumber.js')
 const get = require('lodash.get')
 const jwt = require('jsonwebtoken')
+const ethers = require('ethers')
 
-const { discordWebhookUrl } = require('../config')
+const { discordWebhookUrl, provider, signer, contract } = require('../config')
 const { sendEmail } = require('../lib/email')
 const { postToWebhook } = require('./webhook')
 const {
   TRANSFER_DONE,
   TRANSFER_FAILED,
   TRANSFER_REQUEST,
-  TRANSFER_CONFIRMED
+  TRANSFER_CONFIRMED,
 } = require('../constants/events')
 const { Event, Transfer, User, sequelize } = require('../models')
 const { getBalance } = require('./balance')
@@ -18,7 +19,7 @@ const {
   clientUrl,
   encryptionSecret,
   gasPriceMultiplier,
-  transferConfirmationTimeout
+  transferConfirmationTimeout,
 } = require('../config')
 const enums = require('../enums')
 const logger = require('../logger')
@@ -57,14 +58,14 @@ async function addTransfer(userId, address, amount, data = {}) {
       toAddress: address.toLowerCase(),
       amount,
       currency: 'OGN', // For now we only support OGN.
-      data
+      data,
     })
     await Event.create({
       userId: userId,
       action: TRANSFER_REQUEST,
       data: JSON.stringify({
-        transferId: transfer.id
-      })
+        transferId: transfer.id,
+      }),
     })
     await txn.commit()
   } catch (e) {
@@ -88,7 +89,7 @@ async function sendTransferConfirmationEmail(transfer, userId) {
 
   const confirmationToken = jwt.sign(
     {
-      transferId: transfer.id
+      transferId: transfer.id,
     },
     encryptionSecret,
     { expiresIn: `${transferConfirmationTimeout}m` }
@@ -96,7 +97,7 @@ async function sendTransferConfirmationEmail(transfer, userId) {
 
   const vars = {
     url: `${clientUrl}/withdrawal/${transfer.id}/${confirmationToken}`,
-    employee: user.employee
+    employee: user.employee,
   }
   await sendEmail(user.email, 'transfer', vars)
 
@@ -120,7 +121,7 @@ async function confirmTransfer(transfer, user) {
   if (transferHasExpired(transfer)) {
     await transfer.update({
       // @ts-ignore
-      status: enums.TransferStatuses.Expired
+      status: enums.TransferStatuses.Expired,
     })
     throw new Error('Transfer was not confirmed in the required time')
   }
@@ -130,14 +131,14 @@ async function confirmTransfer(transfer, user) {
   try {
     await transfer.update({
       // @ts-ignore
-      status: enums.TransferStatuses.Enqueued
+      status: enums.TransferStatuses.Enqueued,
     })
     const event = {
       userId: user.id,
       action: TRANSFER_CONFIRMED,
       data: JSON.stringify({
-        transferId: transfer.id
-      })
+        transferId: transfer.id,
+      }),
     }
     await Event.create(event)
     await txn.commit()
@@ -163,10 +164,10 @@ async function confirmTransfer(transfer, user) {
             description: [
               `**ID:** \`${transfer.id}\``,
               `**Address:** \`${transfer.toAddress}\``,
-              `**Country:** ${countryDisplay}`
-            ].join('\n')
-          }
-        ]
+              `**Country:** ${countryDisplay}`,
+            ].join('\n'),
+          },
+        ],
       }
       await postToWebhook(discordWebhookUrl, JSON.stringify(webhookData))
     }
@@ -189,7 +190,6 @@ async function confirmTransfer(transfer, user) {
  *
  * @param {Transfer} transfer: Db model transfer object
  * @param {BigInt} transferTaskId: Id of the calling transfer task
- * @param {Token} token: An instance of the token library (@origin/token)
  * @returns {Promise<String|Boolean>} Hash of the transaction
  */
 async function executeTransfer(transfer, transferTaskId) {
@@ -207,21 +207,30 @@ async function executeTransfer(transfer, transferTaskId) {
   await transfer.update({
     // @ts-ignore
     status: enums.TransferStatuses.Processing,
-    transferTaskId
+    transferTaskId,
   })
 
   // Send transaction to transfer the tokens and record txHash in the DB.
-  const naturalAmount = token.toNaturalUnit(transfer.amount)
-  const supplier = await token.defaultAccount()
+  const amount = ethers.utils.parseUnits(transfer.amount)
+  const supplier = await signer.getAddress()
 
+  // Check the balance
+  // TODO handle opts
   const opts = {}
   if (gasPriceMultiplier) {
     opts.gasPriceMultiplier = gasPriceMultiplier
   }
 
-  let txHash
+  let receipt
   try {
-    txHash = await token.credit(transfer.toAddress, naturalAmount, opts)
+    const supplierBalance = await contract.balanceOf(supplier)
+    if (amount.gt(supplierBalance)) {
+      throw new Error(`Supplier balance is too low`)
+    }
+
+    receipt = await contract
+      .connect(signer)
+      .transfer(transfer.toAddress, amount)
   } catch (error) {
     logger.error('Error crediting tokens', error.message)
     await updateTransferStatus(
@@ -234,29 +243,28 @@ async function executeTransfer(transfer, transferTaskId) {
     return false
   }
 
-  logger.info(`Transfer ${transfer.id} processed with hash ${txHash}`)
+  logger.info(`Transfer ${transfer.id} processed with hash ${receipt.hash}`)
 
   await transfer.update({
     // @ts-ignore
     status: enums.TransferStatuses.WaitingConfirmation,
     fromAddress: supplier.toLowerCase(),
-    txHash
+    txHash: receipt.hash,
   })
 
-  return txHash
+  return receipt.hash
 }
 
 /**
  * Sends a blockchain transaction to transfer tokens.
  *
  * @param {Transfer} transfer: DB model Transfer object
- * @param {Token} token: An instance of the token library (@origin/token)
  * @returns {Promise<String>}
  */
-async function checkBlockConfirmation(transfer, token) {
+async function checkBlockConfirmation(transfer) {
   // Wait for the transaction to get confirmed.
-  const result = await token.txIsConfirmed(transfer.txHash, {
-    numBlocks: NumBlockConfirmation
+  const result = await isConfirmed(transfer.txHash, {
+    numBlocks: NumBlockConfirmation,
   })
 
   let transferStatus, eventAction, failureReason
@@ -314,14 +322,14 @@ async function updateTransferStatus(
   const txn = await sequelize.transaction()
   try {
     await transfer.update({
-      status: transferStatus
+      status: transferStatus,
     })
     const event = {
       userId: transfer.userId,
       action: eventAction,
       data: {
-        transferId: transfer.id
-      }
+        transferId: transfer.id,
+      },
     }
     if (failureReason) {
       event.data.failureReason = failureReason
@@ -337,9 +345,44 @@ async function updateTransferStatus(
   }
 }
 
+async function isConfirmed(transactionHash, { numBlocks = 8 }) {
+  let receipt
+  try {
+    receipt = await provider.getTransactionReceipt(transactionHash)
+  } catch (e) {
+    logger.error(
+      `getTransactionReceipt failure for transaction hash ${transactionHash}`,
+      e
+    )
+  }
+
+  // Note: we check on the presence of both receipt and receipt.blockNumber
+  // to account for the difference between Geth and Parity:
+  //  - Geth does not return a receipt until the transaction is mined
+  //  - Parity returns a receipt with no blockNumber until the transaction is mined.
+  if (receipt && receipt.blockNumber) {
+    if (!receipt.status) {
+      // Transaction was reverted by the EVM.
+      return { status: 'failed', receipt }
+    } else {
+      // Calculate the number of block confirmations.
+      try {
+        const blockNumber = await provider.getBlockNumber()
+        const numConfirmations = blockNumber - receipt.blockNumber
+        if (numConfirmations >= numBlocks) {
+          // Transaction confirmed.
+          return { status: 'confirmed', receipt }
+        }
+      } catch (e) {
+        logger.error('getBlockNumber failure', e)
+      }
+    }
+  }
+}
+
 module.exports = {
   addTransfer,
   confirmTransfer,
   executeTransfer,
-  checkBlockConfirmation
+  checkBlockConfirmation,
 }
