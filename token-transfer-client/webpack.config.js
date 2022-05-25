@@ -81,8 +81,8 @@ const webpackConfig = {
           {
             loader: 'file-loader',
             options: {
-              name: '[name].[hash].[ext]',
-            },
+              name: '[name].[hash].[ext]'
+            }
           }
         ]
       },
@@ -93,13 +93,13 @@ const webpackConfig = {
           'style-loader',
           // Translates CSS into CommonJS
           {
-            loader: 'css-loader',
+            loader: 'css-loader'
           },
           'resolve-url-loader',
           // Compiles Sass to CSS
-          'sass-loader',
-        ],
-      },
+          'sass-loader'
+        ]
+      }
     ]
   },
   resolve: {
