@@ -9,9 +9,15 @@ const {
   vestingSchedule,
   vestedAmount,
   toMoment,
-  momentizeGrant
+  momentizeGrant,
 } = require('./lib/vesting')
+const { currencies } = require('./constants/currencies')
 const enums = require('./enums')
+
+const currencyAmounts = Object.keys(currencies).reduce(
+  (o, key) => ({ ...o, [key]: BigNumber(0) }),
+  {}
+)
 
 /**
  * @typedef {import('./models/user')} User
@@ -35,7 +41,7 @@ function momentizeLockup(lockup) {
   return {
     ...lockup,
     start: toMoment(lockup.start),
-    end: toMoment(lockup.end)
+    end: toMoment(lockup.end),
   }
 }
 
@@ -43,10 +49,13 @@ function momentizeLockup(lockup) {
  * @param {[Object]} grants: grant object
  */
 function calculateGranted(grants) {
-  return grants.reduce((total, grant) => {
-    return total.plus(grant.amount)
+  return grants.reduce((totals, grant) => {
+    return {
+      ...totals,
+      [grant.currency]: totals[grant.currency].plus(grant.amount),
+    }
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 /** Calculate the amount of vested tokens for an array of grants
@@ -54,14 +63,17 @@ function calculateGranted(grants) {
  * @param {[Object]} grants: grant object
  */
 function calculateVested(user, grants) {
-  return grants.reduce((total, grant) => {
+  return grants.reduce((totals, grant) => {
     if (grant.dataValues) {
       // Convert if instance of sequelize model
       grant = grant.get({ plain: true })
     }
-    return total.plus(vestedAmount(user, grant))
+    return {
+      ...totals,
+      [grant.currency]: totals[grant.currency].plus(vestedAmount(user, grant)),
+    }
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 /** Calculate the unlocked earnings from an array of lockups. Tokens earned
@@ -70,7 +82,7 @@ function calculateVested(user, grants) {
  * @param {[Object]} lockups: array of lockups
  */
 function calculateUnlockedEarnings(lockups) {
-  return lockups.reduce((total, lockup) => {
+  return lockups.reduce((totals, lockup) => {
     if (lockup.confirmed && lockup.end <= moment.utc()) {
       // @ts-ignore
       const earnings = BigNumber(lockup.amount)
@@ -79,11 +91,11 @@ function calculateUnlockedEarnings(lockups) {
         .div(BigNumber(100))
         // @ts-ignore
         .toFixed(0, BigNumber.ROUND_HALF_UP)
-      return total.plus(earnings)
+      return totals[lockup.currency].plus(earnings)
     }
-    return total
+    return totals
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 /** Calculate the total earnings from an array of lockups. This includes both
@@ -92,7 +104,7 @@ function calculateUnlockedEarnings(lockups) {
  * @param {[Object]} lockups: array of lockups
  */
 function calculateEarnings(lockups) {
-  return lockups.reduce((total, lockup) => {
+  return lockups.reduce((totals, lockup) => {
     if (lockup.confirmed) {
       // @ts-ignore
       const earnings = BigNumber(lockup.amount)
@@ -101,24 +113,24 @@ function calculateEarnings(lockups) {
         .div(BigNumber(100))
         // @ts-ignore
         .toFixed(0, BigNumber.ROUND_HALF_UP)
-      return total.plus(earnings)
+      return totals[lockup.currency].plus(earnings)
     }
-    return total
+    return totals
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 /** Calculate tokens that are locked by lockups.
  * @param {[Object]} lockups: array of lockups
  */
 function calculateLocked(lockups) {
-  return lockups.reduce((total, lockup) => {
+  return lockups.reduce((totals, lockup) => {
     if (isEarlyLockup(lockup)) {
       if (moment.utc(lockup.data.vest.date) > moment.utc()) {
         // The early lockup vest has not vested, so the balance is these tokens
         // are not counted here, but in calculateNextVestLocked
         // @ts-ignore
-        return total
+        return totals
       }
     }
     if (
@@ -126,17 +138,17 @@ function calculateLocked(lockups) {
       moment.utc(lockup.end).isAfter(moment.utc()) // Lockup has not yet ended
     ) {
       // @ts-ignore
-      return total.plus(BigNumber(lockup.amount))
+      return totals[lockup.currency].plus(BigNumber(lockup.amount))
     }
-    return total
+    return totals
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 /** Determine if a lockup is an arly lockup based
  * @param {Object} lockup: lockup object.
  */
-const isEarlyLockup = lockup => {
+const isEarlyLockup = (lockup) => {
   return !!(lockup.data && lockup.data.vest && lockup.data.vest.grantId)
 }
 
@@ -159,18 +171,14 @@ function calculateNextVestLocked(lockups) {
   }, BigNumber(0))
 }
 
-/** Get the next vest for a user.
- * @param {[Object]} grants: array of grant objects
- * @param {User|Object} user: user the grants belong to
- */
 function getNextVest(grants, user) {
   // Flat map implementation, can remove in node >11
   const flatMap = (a, cb) => [].concat(...a.map(cb))
-  const allGrantVestingSchedule = flatMap(grants, grant => {
+  const allGrantVestingSchedule = flatMap(grants, (grant) => {
     return vestingSchedule(user, grant)
   })
   const sortedUnvested = allGrantVestingSchedule
-    .filter(v => !v.vested)
+    .filter((v) => !v.vested)
     .sort((a, b) => a.date - b.date)
 
   // No next vest
@@ -180,7 +188,7 @@ function getNextVest(grants, user) {
   // case where users have multiple grants starting at the same time.
   // Note that the client displays vests on the same day as the sum of those
   // vests in the vesting history card
-  const sameDay = sortedUnvested.filter(v =>
+  const sameDay = sortedUnvested.filter((v) =>
     v.date.isSame(sortedUnvested[0].date, 'day')
   )
 
@@ -192,12 +200,12 @@ function getNextVest(grants, user) {
     // Dates are the same
     date: sortedUnvested[0].date,
     // List of grant ids
-    grantId: sameDay.map(s => s.grantId),
+    grantId: sameDay.map((s) => s.grantId),
     // Sum the vest amounts
     amount: sameDay.reduce((total, vest) => {
       return total.plus(BigNumber(vest.amount))
     }, BigNumber(0)),
-    vested: false
+    vested: false,
   }
 }
 
@@ -219,10 +227,10 @@ function calculateWithdrawn(transfers) {
     // @ts-ignore
     enums.TransferStatuses.Success,
     // @ts-ignore
-    enums.TransferStatuses.Processing
+    enums.TransferStatuses.Processing,
   ]
 
-  return transfers.reduce((total, transfer) => {
+  return transfers.reduce((totals, transfer) => {
     if (pendingOrCompleteTransfers.includes(transfer.status)) {
       if (
         // Handle the case where a transfer is still awaiting email confirmation
@@ -231,15 +239,20 @@ function calculateWithdrawn(transfers) {
         transfer.status === enums.TransferStatuses.WaitingEmailConfirm &&
         transferHasExpired(transfer)
       ) {
-        return total
+        return totals
       } else {
         // @ts-ignore
-        return total.plus(BigNumber(transfer.amount))
+        return {
+          ...totals,
+          [transfer.currency]: totals[transfer.currency].plus(
+            BigNumber(transfer.amount)
+          ),
+        }
       }
     }
-    return total
+    return totals
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 /** Helper function to determine if a transfer has expired, i.e. the user did
@@ -279,5 +292,5 @@ module.exports = {
   lockupHasExpired,
   transferHasExpired,
   lockupConfirmationTimeout,
-  transferConfirmationTimeout
+  transferConfirmationTimeout,
 }
