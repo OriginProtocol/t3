@@ -12,17 +12,18 @@ module.exports = (sequelize, DataTypes) => {
       end: { type: DataTypes.DATE, allowNull: false },
       cancelled: { type: DataTypes.DATE },
       amount: { type: DataTypes.INTEGER, allowNull: false },
+      currency: DataTypes.STRING,
       purchaseDate: DataTypes.DATE,
       purchaseRound: DataTypes.STRING,
       purchaseTotal: DataTypes.DECIMAL,
-      investmentAmount: DataTypes.DECIMAL
+      investmentAmount: DataTypes.DECIMAL,
     },
     {
-      tableName: 't3_grant'
+      tableName: 't3_grant',
     }
   )
 
-  Grant.associate = models => {
+  Grant.associate = (models) => {
     Grant.belongsTo(models.User)
   }
 

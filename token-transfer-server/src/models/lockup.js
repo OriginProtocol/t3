@@ -8,17 +8,18 @@ module.exports = (sequelize, DataTypes) => {
       userId: { type: DataTypes.INTEGER, allowNull: false },
       start: DataTypes.DATE,
       end: DataTypes.DATE,
+      currency: DataTypes.STRING,
       bonusRate: DataTypes.DECIMAL,
       amount: DataTypes.INTEGER,
       confirmed: DataTypes.BOOLEAN,
-      data: DataTypes.JSONB
+      data: DataTypes.JSONB,
     },
     {
-      tableName: 't3_lockup'
+      tableName: 't3_lockup',
     }
   )
 
-  Lockup.associate = models => {
+  Lockup.associate = (models) => {
     Lockup.belongsTo(models.User)
   }
 
