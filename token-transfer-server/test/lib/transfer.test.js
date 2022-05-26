@@ -37,6 +37,7 @@ describe('Token transfer library', () => {
       start: new Date('2014-10-10'),
       end: new Date('2018-10-10'),
       cliff: new Date('2015-10-10'),
+      currency: 'OGN',
       amount: 100000,
     })
   })
@@ -45,7 +46,7 @@ describe('Token transfer library', () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
     const amount = 1000
-    const transfer = await addTransfer(this.user.id, toAddress, amount)
+    const transfer = await addTransfer(this.user.id, toAddress, amount, 'OGN')
 
     // Check a transfer row was created and populated as expected.
     expect(transfer).to.be.an('object')
@@ -65,22 +66,30 @@ describe('Token transfer library', () => {
   it('should add a transfer where required amount spans multiple grants', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Grant.create({
       userId: this.user.id,
       start: new Date('2014-10-10'),
       end: new Date('2018-10-10'),
       cliff: new Date('2015-10-10'),
+      currency,
       amount: 1,
     })
     const amount = 100001
-    const transfer = await addTransfer(this.user.id, toAddress, amount)
+    const transfer = await addTransfer(
+      this.user.id,
+      toAddress,
+      amount,
+      currency
+    )
     // Check a transfer row was created and populated as expected.
     expect(transfer).to.be.an('object')
     expect(transfer.userId).to.equal(this.user.id)
     expect(transfer.toAddress).to.equal(toAddress.toLowerCase())
     expect(transfer.fromAddress).to.be.null
     expect(parseInt(transfer.amount)).to.equal(amount)
-    expect(transfer.currency).to.equal('OGN')
+    expect(transfer.currency).to.equal(currency)
     expect(transfer.txHash).to.be.null
     expect(transfer.data).to.be.an('object')
 
@@ -92,16 +101,18 @@ describe('Token transfer library', () => {
   it('should add ignoring failed transfer amounts', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Failed,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
-    await addTransfer(this.user.id, toAddress, amount)
+    await addTransfer(this.user.id, toAddress, amount, currency)
 
     // Check an email was sent with the confirmation token
     expect(sendStub.called).to.equal(true)
@@ -111,16 +122,18 @@ describe('Token transfer library', () => {
   it('should add ignoring cancelled transfer amounts', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Cancelled,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
-    await addTransfer(this.user.id, toAddress, amount)
+    await addTransfer(this.user.id, toAddress, amount, currency)
 
     // Check an email was sent with the confirmation token
     expect(sendStub.called).to.equal(true)
@@ -130,16 +143,18 @@ describe('Token transfer library', () => {
   it('should add ignoring expired transfer amounts', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Expired,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
-    await addTransfer(this.user.id, toAddress, amount)
+    await addTransfer(this.user.id, toAddress, amount, currency)
 
     // Check an email was sent with the confirmation token
     expect(sendStub.called).to.equal(true)
@@ -149,12 +164,14 @@ describe('Token transfer library', () => {
   it('should add ignoring transfers waiting for email confirmation that have expired tokens', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     // Go forward in time to expire the transfer
@@ -163,7 +180,7 @@ describe('Token transfer library', () => {
     )
 
     const amount = 99999
-    await addTransfer(this.user.id, toAddress, amount)
+    await addTransfer(this.user.id, toAddress, amount, currency)
 
     // Check an email was sent with the confirmation token
     expect(sendStub.called).to.equal(true)
@@ -175,86 +192,98 @@ describe('Token transfer library', () => {
   it('should not add a transfer if not enough tokens (vested)', async () => {
     const amount = 100001
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, 'OGN')
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
   it('should not add a transfer if not enough tokens (vested minus waiting email confirmation)', async () => {
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, currency)
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
   it('should not add a transfer if not enough tokens (vested minus enqueued)', async () => {
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Enqueued,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, currency)
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
   it('should not add a transfer if not enough tokens (vested minus paused)', async () => {
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Paused,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, currency)
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
   it('should not add a transfer if not enough tokens (vested minus waiting confirmation)', async () => {
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingConfirmation,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, currency)
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
   it('should not add a transfer if not enough tokens (vested minus success)', async () => {
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Success,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     const amount = 99999
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, currency)
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
   it('should not add a transfer if not enough tokens (multiple states)', async () => {
+    const currency = 'OGN'
+
     const promises = [
       enums.TransferStatuses.WaitingEmailConfirm,
       enums.TransferStatuses.Enqueued,
@@ -267,7 +296,7 @@ describe('Token transfer library', () => {
         status: status,
         toAddress: toAddress,
         amount: 2,
-        currency: 'OGN',
+        currency,
       })
     })
 
@@ -275,7 +304,7 @@ describe('Token transfer library', () => {
 
     const amount = 99991
     await expect(
-      addTransfer(this.user.id, toAddress, amount)
+      addTransfer(this.user.id, toAddress, amount, currency)
     ).to.eventually.be.rejectedWith(/exceeds/)
   })
 
@@ -285,7 +314,13 @@ describe('Token transfer library', () => {
 
     // Enqueue and execute a transfer
     const amount = 1000
-    const transfer = await addTransfer(this.user.id, toAddress, amount)
+    const currency = 'OGN'
+    const transfer = await addTransfer(
+      this.user.id,
+      toAddress,
+      amount,
+      currency
+    )
     const txHash = await executeTransfer(transfer)
     expect(txHash).to.equal('0x0')
 
@@ -297,12 +332,14 @@ describe('Token transfer library', () => {
   })
 
   it('should confirm a transfer', async () => {
+    const currency = 'OGN'
+
     const transfer = await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN',
+      currency,
     })
 
     await confirmTransfer(transfer, this.user)
@@ -310,6 +347,8 @@ describe('Token transfer library', () => {
   })
 
   it('should not confirm a transfer in any state except waiting for email confirmation', async () => {
+    const currency = 'OGN'
+
     const transfers = await Promise.all(
       [
         enums.TransferStatuses.Enqueued,
@@ -325,7 +364,7 @@ describe('Token transfer library', () => {
           status: status,
           toAddress: toAddress,
           amount: 2,
-          currency: 'OGN',
+          currency,
         })
       })
     )
@@ -340,12 +379,14 @@ describe('Token transfer library', () => {
   })
 
   it('should not confirm a transfer that passed the timeout', async () => {
+    const currency = 'OGN'
+
     const transfer = await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
       amount: 1,
-      currency: 'OGN',
+      currency,
       createdAt: moment().subtract(10, 'minutes'),
     })
     await expect(

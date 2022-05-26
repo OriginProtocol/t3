@@ -1,4 +1,4 @@
-Please confirm your withdrawal of Origin tokens by clicking the link below.
+Please confirm your withdrawal by clicking the link below.
 
 <%= url %>
 

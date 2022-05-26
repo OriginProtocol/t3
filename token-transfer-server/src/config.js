@@ -11,6 +11,7 @@ const {
   lockupConfirmationTimeout,
 } = require('./shared')
 const { ContractMock } = require('../test/contract-mock')
+const { currencies } = require('./constants/currencies')
 
 const MAINNET_NETWORK_ID = 1
 const ROPSTEN_NETWORK_ID = 3
@@ -178,20 +179,26 @@ const ERC20_ABI = [
   'event Transfer(address indexed from, address indexed to, uint amount)',
 ]
 
-const createTokenContract = () => {
+const createTokenContract = (currency) => {
   let contract
 
-  // OGN addresses
-  const addresses = {
-    mainnet: '0x8207c1ffc5b6804f6024322ccf34f29c3541ae26',
-    rinkeby: '0xa115e16ef6e217f7a327a57031f75ce0487aadb8',
+  if (!Object.keys(currencies).includes(currency)) {
+    throw new Error(`${currency} is not a supported currency`)
   }
+
+  const addresses = currencies[currency]
 
   switch (networkId) {
     case MAINNET_NETWORK_ID:
+      if (!address.mainnet) {
+        throw new Error(`${currency} is not configured for mainnet`)
+      }
       contract = new ethers.Contract(addresses.mainnet, ERC20_ABI, provider)
       break
     case RINKEBY_NETWORK_ID:
+      if (!address.rinkeby) {
+        throw new Error(`${currency} is not configured for rinkeby`)
+      }
       contract = new ethers.Contract(addresses.rinkeby, ERC20_ABI, provider)
       break
     case LOCAL_NETWORK_ID:
@@ -208,8 +215,6 @@ const createTokenContract = () => {
 
   return contract
 }
-
-const contract = createTokenContract()
 
 module.exports = {
   discordWebhookUrl,
@@ -236,5 +241,5 @@ module.exports = {
   otcRequestEnabled,
   provider,
   signer,
-  contract,
+  createTokenContract,
 }

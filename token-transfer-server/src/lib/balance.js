@@ -6,7 +6,7 @@ const {
   calculateUnlockedEarnings,
   calculateVested,
   calculateWithdrawn,
-  getNextVest
+  getNextVest,
 } = require('../shared')
 const logger = require('../logger')
 
@@ -17,12 +17,12 @@ const logger = require('../logger')
  * @returns Promise<BigNumber> - available balance
  * @private
  */
-async function getBalance(userId) {
+async function getBalance(userId, currency) {
   const user = await User.findOne({
     where: {
-      id: userId
+      id: userId,
     },
-    include: [{ model: Grant }, { model: Transfer }, { model: Lockup }]
+    include: [{ model: Grant }, { model: Transfer }, { model: Lockup }],
   })
   // Load the user and check there enough tokens available to fulfill the
   // transfer request
@@ -32,38 +32,44 @@ async function getBalance(userId) {
 
   // Sum the vested tokens for all of the users grants
   const vested = calculateVested(user, user.Grants)
-  logger.debug(`User ${user.email} vested tokens`, vested.toString())
+  logger.debug(
+    `User ${user.email} vested ${currency}`,
+    vested[currency].toString()
+  )
   // Sum the unlocked tokens from lockup earnings
   const lockupEarnings = calculateUnlockedEarnings(user.Lockups)
   logger.debug(
-    `User ${user.email} unlocked earnings from lockups`,
-    lockupEarnings.toString()
+    `User ${user.email} unlocked ${currency} from lockups`,
+    lockupEarnings[currency].toString()
   )
   // Sum amount withdrawn or pending in transfers
   const transferWithdrawnAmount = calculateWithdrawn(user.Transfers)
   logger.debug(
-    `User ${user.email} pending or transferred tokens`,
-    transferWithdrawnAmount.toString()
+    `User ${user.email} pending or ${currency}`,
+    transferWithdrawnAmount[currency].toString()
   )
 
   // Sum locked by lockups
   const lockedAmount = calculateLocked(user.Lockups)
-  logger.debug(`User ${user.email} tokens in lockup`, lockedAmount.toString())
+  logger.debug(
+    `User ${user.email} ${currency} in lockup`,
+    lockedAmount[currency].toString()
+  )
 
   const nextVestLocked = calculateNextVestLocked(user.Lockups)
   logger.debug(
-    `User ${user.email} tokens in early lockup`,
+    `User ${user.email} ${currency} in early lockup`,
     nextVestLocked.toString()
   )
 
   // Calculate total available tokens
-  const available = vested
-    .plus(lockupEarnings)
-    .minus(transferWithdrawnAmount)
-    .minus(lockedAmount)
+  const available = vested[currency]
+    .plus(lockupEarnings[currency])
+    .minus(transferWithdrawnAmount[currency])
+    .minus(lockedAmount[currency])
 
   if (available.lt(0)) {
-    throw new RangeError(`Amount of available OGN is below 0`)
+    throw new RangeError(`Amount of available ${currency} is below 0`)
   }
 
   return available
@@ -81,9 +87,9 @@ async function getBalance(userId) {
 async function getNextVestBalance(userId) {
   const user = await User.findOne({
     where: {
-      id: userId
+      id: userId,
     },
-    include: [{ model: Grant }, { model: Transfer }, { model: Lockup }]
+    include: [{ model: Grant }, { model: Transfer }, { model: Lockup }],
   })
   // Load the user and check there enough tokens available to fulfill the
   // transfer request
@@ -92,7 +98,7 @@ async function getNextVestBalance(userId) {
   }
 
   const nextVest = getNextVest(
-    user.Grants.map(g => g.get({ plain: true })),
+    user.Grants.map((g) => g.get({ plain: true })),
     user
   )
   if (!nextVest) {
@@ -113,5 +119,5 @@ async function getNextVestBalance(userId) {
 module.exports = {
   calculateEarnings,
   getBalance,
-  getNextVestBalance
+  getNextVestBalance,
 }

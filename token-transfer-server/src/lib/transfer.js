@@ -3,7 +3,12 @@ const get = require('lodash.get')
 const jwt = require('jsonwebtoken')
 const ethers = require('ethers')
 
-const { discordWebhookUrl, provider, signer, contract } = require('../config')
+const {
+  discordWebhookUrl,
+  provider,
+  signer,
+  createTokenContract,
+} = require('../config')
 const { sendEmail } = require('../lib/email')
 const { postToWebhook } = require('./webhook')
 const {
@@ -12,6 +17,7 @@ const {
   TRANSFER_REQUEST,
   TRANSFER_CONFIRMED,
 } = require('../constants/events')
+const { currencies } = require('../constants/currencies')
 const { Event, Transfer, User, sequelize } = require('../models')
 const { getBalance } = require('./balance')
 const { transferHasExpired } = require('../shared')
@@ -36,12 +42,15 @@ const NumBlockConfirmation = 3
  * @param {Object} data: additional data to be recorded with the transfer request
  * @returns {Promise<Transfer>} Transfer object.
  */
-async function addTransfer(userId, address, amount, data = {}) {
-  const balance = await getBalance(userId)
+async function addTransfer(userId, address, amount, currency, data = {}) {
+  if (!Object.keys(currencies).includes(currency)) {
+    throw new Error(`${currency} is not a supported currency`)
+  }
+  const balance = await getBalance(userId, currency)
   // @ts-ignore
   if (BigNumber(amount).gt(balance)) {
     throw new RangeError(
-      `Amount of ${amount} OGN exceeds the ${balance} available for transfer for user ${userId}`
+      `Amount of ${amount} ${currency} exceeds the ${balance} available for transfer for user ${userId}`
     )
   }
 
@@ -57,7 +66,7 @@ async function addTransfer(userId, address, amount, data = {}) {
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: address.toLowerCase(),
       amount,
-      currency: 'OGN', // For now we only support OGN.
+      currency,
       data,
     })
     await Event.create({
@@ -193,14 +202,14 @@ async function confirmTransfer(transfer, user) {
  * @returns {Promise<String|Boolean>} Hash of the transaction
  */
 async function executeTransfer(transfer, transferTaskId) {
-  const balance = await getBalance(transfer.userId)
+  const balance = await getBalance(transfer.userId, transfer.currency)
 
   // Add the current transfer to the balance because it is the one we are processing
   const balanceExcludingTransfer = balance.plus(transfer.amount)
 
   if (balanceExcludingTransfer.lt(0)) {
     throw new RangeError(
-      `Amount of ${transfer.amount} OGN exceeds the ${balanceExcludingTransfer} available for executing transfer for user ${transfer.userId}`
+      `Amount of ${transfer.amount} ${transfer.currency} exceeds the ${balanceExcludingTransfer} available for executing transfer for user ${transfer.userId}`
     )
   }
 
@@ -220,6 +229,8 @@ async function executeTransfer(transfer, transferTaskId) {
   if (gasPriceMultiplier) {
     opts.gasPriceMultiplier = gasPriceMultiplier
   }
+
+  const contract = createTokenContract(transfer.currency)
 
   let receipt
   try {
