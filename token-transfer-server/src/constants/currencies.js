@@ -8,3 +8,7 @@ const currencies = {
     rinkeby: '',
   },
 }
+
+module.exports = {
+  currencies,
+}
