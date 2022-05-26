@@ -28,4 +28,6 @@ class ContractMock {
   }
 }
 
-module.exports = ContractMock
+module.exports = {
+  ContractMock,
+}
