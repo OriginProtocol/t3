@@ -11,9 +11,9 @@ const {
   asyncMiddleware,
   getFingerprintData,
   getUnlockDate,
-  lock
+  lock,
 } = require('../utils')
-const { isEthereumAddress, isValidTotp } = require('../validators')
+const { isEthereumAddress, isValidTotp, isCurrency } = require('../validators')
 const { encryptionSecret } = require('../config')
 const { addTransfer, confirmTransfer } = require('../lib/transfer')
 const logger = require('../logger')
@@ -27,9 +27,9 @@ router.get(
   asyncMiddleware(async (req, res) => {
     const transfers = await Transfer.findAll({
       where: { userId: req.user.id },
-      order: [['created_at', 'DESC']]
+      order: [['created_at', 'DESC']],
     })
-    res.json(transfers.map(transfer => transfer.get({ plain: true })))
+    res.json(transfers.map((transfer) => transfer.get({ plain: true })))
   })
 )
 
@@ -39,6 +39,7 @@ router.get(
 router.post(
   '/transfers',
   [
+    check('currency').custom(isCurrency),
     check('amount')
       .isNumeric()
       .toInt()
@@ -46,7 +47,7 @@ router.post(
       .withMessage('Amount must be greater than 0'),
     check('address').custom(isEthereumAddress),
     check('code').custom(isValidTotp),
-    ensureLoggedIn
+    ensureLoggedIn,
   ],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
@@ -65,7 +66,7 @@ router.post(
       return
     }
 
-    const { address, amount } = req.body
+    const { address, amount, currency } = req.body
 
     let transfer
     try {
@@ -74,11 +75,12 @@ router.post(
           req.user.id,
           address,
           amount,
+          currency,
           await getFingerprintData(req)
         )
       })
       logger.info(
-        `User ${req.user.email} queued a transfer for ${amount} OGN to ${address}`
+        `User ${req.user.email} queued a transfer for ${amount} ${currency} to ${address}`
       )
     } catch (e) {
       if (e instanceof ReferenceError || e instanceof RangeError) {
@@ -99,12 +101,7 @@ router.post(
  */
 router.post(
   '/transfers/:id',
-  [
-    check('token')
-      .not()
-      .isEmpty(),
-    ensureLoggedIn
-  ],
+  [check('token').not().isEmpty(), ensureLoggedIn],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -132,7 +129,7 @@ router.post(
     }
 
     const transfer = await Transfer.findOne({
-      where: { id: decodedToken.transferId, userId: req.user.id }
+      where: { id: decodedToken.transferId, userId: req.user.id },
     })
     if (!transfer) {
       return res.status(404)

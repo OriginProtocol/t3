@@ -235,6 +235,8 @@ async function executeTransfer(transfer, transferTaskId) {
   let receipt
   try {
     const supplierBalance = await contract.balanceOf(supplier)
+    console.log(supplierBalance.toString())
+    console.log(amount.toString())
     if (amount.gt(supplierBalance)) {
       throw new Error(`Supplier balance is too low`)
     }

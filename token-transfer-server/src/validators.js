@@ -3,6 +3,7 @@ const totp = require('notp').totp
 
 const { Account } = require('./models')
 const { decrypt } = require('./lib/crypto')
+const { currencies } = require('./constants/currencies')
 
 // Validator for validating an Ethereum address
 const isEthereumAddress = (value) => {
@@ -77,6 +78,13 @@ const isValidNewTotp = (value, { req }) => {
   return true
 }
 
+const isCurrency = (value, { req }) => {
+  if (!Object.keys(currencies).includes(req.body.currency)) {
+    throw new Error('Unsupported currency')
+  }
+  return true
+}
+
 module.exports = {
   isEthereumAddress,
   isExistingAddress,
@@ -84,4 +92,5 @@ module.exports = {
   isValidTotp,
   isRecentlyValidTotp,
   isValidNewTotp,
+  isCurrency,
 }

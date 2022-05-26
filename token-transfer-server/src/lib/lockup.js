@@ -13,7 +13,7 @@ const {
   earlyLockupBonusRate,
   lockupBonusRate,
   lockupDuration,
-  lockupConfirmationTimeout
+  lockupConfirmationTimeout,
 } = require('../config')
 const { getBalance, getNextVestBalance } = require('./balance')
 const { getNextVest, lockupHasExpired } = require('../shared')
@@ -38,9 +38,9 @@ async function addLockup(userId, amount, early, data = {}) {
       created_at: {
         [Sequelize.Op.gte]: moment
           .utc()
-          .subtract(lockupConfirmationTimeout, 'minutes')
-      }
-    }
+          .subtract(lockupConfirmationTimeout, 'minutes'),
+      },
+    },
   })
 
   if (unconfirmedLockups.length > 0) {
@@ -48,6 +48,8 @@ async function addLockup(userId, amount, early, data = {}) {
       'Unconfirmed lockups exist, please confirm or wait until expiry'
     )
   }
+
+  const currency = 'OGN'
 
   // Check if user has sufficient balance
   if (early) {
@@ -64,20 +66,20 @@ async function addLockup(userId, amount, early, data = {}) {
     // vesting event that this lockup is being created for
     const user = await User.findOne({
       where: {
-        id: userId
+        id: userId,
       },
-      include: [{ model: Grant }]
+      include: [{ model: Grant }],
     })
     data = {
       ...data,
       vest: getNextVest(
-        user.Grants.map(g => g.get({ plain: true })),
+        user.Grants.map((g) => g.get({ plain: true })),
         user
-      )
+      ),
     }
   } else {
     // Standard balance check
-    const balance = await getBalance(userId)
+    const balance = await getBalance(userId, currency)
     if (BigNumber(amount).gt(balance)) {
       throw new RangeError(
         `Amount of ${amount} OGN exceeds the ${balance} available for lockup for user ${userId}`
@@ -92,16 +94,17 @@ async function addLockup(userId, amount, early, data = {}) {
       userId: userId,
       start: moment.utc(), // Note lockup starts immediately not at time of next vest
       end: moment.utc().add(lockupDuration, 'months'),
+      currency,
       bonusRate: early ? earlyLockupBonusRate : lockupBonusRate,
       amount,
-      data
+      data,
     })
     await Event.create({
       userId: userId,
       action: LOCKUP_REQUEST,
       data: JSON.stringify({
-        lockupId: lockup.id
-      })
+        lockupId: lockup.id,
+      }),
     })
     await txn.commit()
   } catch (e) {
@@ -126,7 +129,7 @@ async function sendLockupConfirmationEmail(lockup, userId) {
 
   const token = jwt.sign(
     {
-      lockupId: lockup.id
+      lockupId: lockup.id,
     },
     encryptionSecret,
     { expiresIn: `${lockupConfirmationTimeout}m` }
@@ -134,7 +137,7 @@ async function sendLockupConfirmationEmail(lockup, userId) {
 
   const vars = {
     url: `${clientUrl}/lockup/${lockup.id}/${token}`,
-    employee: user.employee
+    employee: user.employee,
   }
 
   await sendEmail(user.email, 'lockup', vars)
@@ -161,14 +164,14 @@ async function confirmLockup(lockup, user) {
   const txn = await sequelize.transaction()
   try {
     await lockup.update({
-      confirmed: true
+      confirmed: true,
     })
     const event = {
       userId: user.id,
       action: LOCKUP_CONFIRMED,
       data: JSON.stringify({
-        lockupId: lockup.id
-      })
+        lockupId: lockup.id,
+      }),
     }
     await Event.create(event)
     await txn.commit()
@@ -189,10 +192,10 @@ async function confirmLockup(lockup, user) {
             title: `A lockup of \`${lockup.amount}\` OGN was created by \`${user.email}\``,
             description: [
               `**ID:** \`${lockup.id}\``,
-              `**Country:** ${countryDisplay}`
-            ].join('\n')
-          }
-        ]
+              `**Country:** ${countryDisplay}`,
+            ].join('\n'),
+          },
+        ],
       }
       await postToWebhook(discordWebhookUrl, JSON.stringify(webhookData))
     }
@@ -208,5 +211,5 @@ async function confirmLockup(lockup, user) {
 
 module.exports = {
   addLockup,
-  confirmLockup
+  confirmLockup,
 }

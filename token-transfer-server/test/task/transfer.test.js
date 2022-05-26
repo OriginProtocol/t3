@@ -20,7 +20,7 @@ const { executeTransfers } = require('../../src/tasks/transfer')
 const {
   largeTransferThreshold,
   largeTransferDelayMinutes,
-  contract,
+  createTokenContract,
 } = require('../../src/config')
 
 const toAddress = '0xf17f52151ebef6c7334fad080c5704d77216b732'
@@ -50,6 +50,7 @@ describe('Execute transfers', () => {
         start: moment().subtract(4, 'years'),
         end: moment(),
         cliff: moment().subtract(3, 'years'),
+        currency: 'OGN',
         amount: 10000000,
       }),
     ]
@@ -94,6 +95,7 @@ describe('Execute transfers', () => {
     await executeTransfers()
 
     await transfer.reload()
+
     expect(transfer.status).to.equal(enums.TransferStatuses.WaitingConfirmation)
 
     const transferTasks = await TransferTask.findAll()
@@ -162,15 +164,32 @@ describe('Execute transfers', () => {
   })
 
   it('should record transfer failure on failure to credit', async () => {
-    contract.setBalance(ethers.BigNumber.from(0))
+    // Provide a larger enough grant to cover a transfer larger than the balance
+    await Grant.create({
+      // Fully vested grant
+      userId: this.user.id,
+      start: moment().subtract(4, 'years'),
+      end: moment(),
+      cliff: moment().subtract(3, 'years'),
+      currency: 'OGN',
+      amount: 1000000001,
+    })
 
     const transfer = await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Enqueued,
       toAddress: toAddress,
-      amount: 1,
+      amount: 1000000001,
       currency: 'OGN',
     })
+
+    // Move into the future
+    const clock = sinon.useFakeTimers(
+      moment
+        .utc(transfer.createdAt)
+        .add(largeTransferDelayMinutes + 1, 'minutes')
+        .valueOf()
+    )
 
     await executeTransfers()
 
@@ -186,6 +205,8 @@ describe('Execute transfers', () => {
     expect(events[0].action).to.equal('TRANSFER_FAILED')
     expect(events[0].data.transferId).to.equal(transfer.id)
     expect(events[0].data.failureReason).to.equal('Supplier balance is too low')
+
+    clock.restore()
   })
 
   // TODO

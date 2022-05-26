@@ -22,7 +22,7 @@ const {
   earlyLockupBonusRate,
   encryptionSecret,
   lockupBonusRate,
-  lockupConfirmationTimeout
+  lockupConfirmationTimeout,
 } = require('../../src/config')
 const app = require('../../src/app')
 const { getNextVest } = require('../../src/shared')
@@ -45,7 +45,7 @@ describe('Lockup HTTP API', () => {
       email: 'user@originprotocol.com',
       name: 'User 1',
       otpKey: encryptedKey,
-      otpVerified: true
+      otpVerified: true,
     })
 
     this.grants = [
@@ -55,7 +55,8 @@ describe('Lockup HTTP API', () => {
         start: moment().subtract(4, 'years'),
         end: moment(),
         cliff: moment().subtract(3, 'years'),
-        amount: 100000
+        currency: 'OGN',
+        amount: 100000,
       }),
       // Vesting in the future
       await Grant.create({
@@ -63,17 +64,18 @@ describe('Lockup HTTP API', () => {
         start: moment().add(1, 'years'),
         end: moment().add(4, 'years'),
         cliff: moment().add(1, 'years'),
-        amount: 10000000
-      })
+        currency: 'OGN',
+        amount: 10000000,
+      }),
     ]
 
     this.mockApp = express()
     this.mockApp.use((req, res, next) => {
       req.session = {
         passport: {
-          user: this.user.id
+          user: this.user.id,
         },
-        twoFA: 'totp'
+        twoFA: 'totp',
       }
       next()
     })
@@ -96,13 +98,12 @@ describe('Lockup HTTP API', () => {
       start: moment.utc(),
       end: moment.utc().add(1, 'years'),
       code: totp.gen(this.otpKey),
+      currency: 'OGN',
       bonusRate: 10.0,
-      confirmed: true
+      confirmed: true,
     })
 
-    const response = await request(this.mockApp)
-      .get('/api/lockups')
-      .expect(200)
+    const response = await request(this.mockApp).get('/api/lockups').expect(200)
 
     expect(response.body.length).to.equal(1)
   })
@@ -116,7 +117,7 @@ describe('Lockup HTTP API', () => {
       .post('/api/lockups')
       .send({
         amount: 1000,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(201)
 
@@ -141,7 +142,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 600000, // Full amount possible, first investor vest is 6%
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
 
     expect(Number(response.body.amount)).to.equal(600000)
@@ -169,7 +170,7 @@ describe('Lockup HTTP API', () => {
         userId: this.grants[1].userId,
         start: this.grants[1].start,
         end: this.grants[1].end,
-        amount: this.grants[1].amount
+        amount: this.grants[1].amount,
       })
     )
 
@@ -178,7 +179,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 600000 * 2, // Full amount possible
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(201)
 
@@ -193,31 +194,32 @@ describe('Lockup HTTP API', () => {
   it('should add a lockup if enough tokens with matured lockups', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 100001,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
     await Lockup.create({
       userId: this.user.id,
       amount: 1000,
-      start: moment()
-        .subtract(1, 'years')
-        .subtract(1, 'days'),
+      start: moment().subtract(1, 'years').subtract(1, 'days'),
       end: moment().subtract(1, 'years'),
       code: totp.gen(this.otpKey),
+      currency,
       bonusRate: 10.0,
-      confirmed: true
+      confirmed: true,
     })
 
     await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 100001,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(201)
 
@@ -234,32 +236,33 @@ describe('Lockup HTTP API', () => {
       .post('/api/lockups')
       .send({
         amount: 100,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(404)
   })
 
   it('should allow adding a lockup if early lockup exists with combined lockup amounts greater than balance', async () => {
     const sendStub = sinon.stub(sendgridMail, 'send')
+    const currency = 'OGN'
+
     const nextVest = getNextVest(
-      this.grants.map(g => g.get({ plain: true })),
+      this.grants.map((g) => g.get({ plain: true })),
       this.user.get({ plain: true })
     )
-    const balance = await getBalance(this.user.id)
+    const balance = await getBalance(this.user.id, currency)
 
     // Lock up entire next vest
     await Lockup.create({
       userId: this.user.id,
       amount: Number(nextVest.amount),
       start: moment().subtract(1, 'days'),
-      end: moment()
-        .add(1, 'years')
-        .add(1, 'days'),
+      end: moment().add(1, 'years').add(1, 'days'),
+      currency,
       bonusRate: 10.0,
       data: {
-        vest: nextVest
+        vest: nextVest,
       },
-      confirmed: true
+      confirmed: true,
     })
 
     // Lock up entire balance
@@ -267,7 +270,7 @@ describe('Lockup HTTP API', () => {
       .post('/api/lockups')
       .send({
         amount: balance,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(201)
 
@@ -288,7 +291,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 100,
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(404)
   })
@@ -301,7 +304,7 @@ describe('Lockup HTTP API', () => {
       .post('/api/lockups')
       .send({
         amount: 100,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -312,22 +315,23 @@ describe('Lockup HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
+    const currency = 'OGN'
+
     await Lockup.create({
       userId: this.user.id,
       amount: 1000,
-      start: moment()
-        .subtract(1, 'years')
-        .subtract(1, 'days'),
+      start: moment().subtract(1, 'years').subtract(1, 'days'),
       end: moment().subtract(1, 'years'),
+      currency,
       code: totp.gen(this.otpKey),
-      bonusRate: 10.0
+      bonusRate: 10.0,
     })
 
     const response = await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 100,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -339,23 +343,24 @@ describe('Lockup HTTP API', () => {
     lockupController.__Rewire__('getUnlockDate', unlockFake)
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Lockup.create({
       userId: this.user.id,
       amount: 1000,
-      start: moment()
-        .subtract(1, 'years')
-        .subtract(1, 'days'),
+      start: moment().subtract(1, 'years').subtract(1, 'days'),
       end: moment().subtract(1, 'years'),
       code: totp.gen(this.otpKey),
+      currency,
       bonusRate: 10.0,
-      createdAt: moment().subtract(10, 'minutes')
+      createdAt: moment().subtract(10, 'minutes'),
     })
 
     await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 100,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(201)
 
@@ -368,23 +373,24 @@ describe('Lockup HTTP API', () => {
     lockupController.__Rewire__('getUnlockDate', unlockFake)
     const sendStub = sinon.stub(sendgridMail, 'send')
 
+    const currency = 'OGN'
+
     await Lockup.create({
       userId: this.user.id,
       amount: 1000,
-      start: moment()
-        .subtract(1, 'years')
-        .subtract(1, 'days'),
+      start: moment().subtract(1, 'years').subtract(1, 'days'),
       end: moment().subtract(1, 'years'),
       code: totp.gen(this.otpKey),
+      currency,
       bonusRate: 10.0,
-      confirmed: true
+      confirmed: true,
     })
 
     await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 100,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(201)
 
@@ -398,7 +404,7 @@ describe('Lockup HTTP API', () => {
       .post('/api/lockups')
       .send({
         amount: 1000001,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
   })
@@ -407,19 +413,21 @@ describe('Lockup HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Enqueued,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency,
     })
 
     const response = await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 999999,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -430,19 +438,21 @@ describe('Lockup HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Paused,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency,
     })
 
     const response = await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 999999,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -453,19 +463,21 @@ describe('Lockup HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingConfirmation,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency,
     })
 
     const response = await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 999999,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -476,19 +488,21 @@ describe('Lockup HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
+    const currency = 'OGN'
+
     await Transfer.create({
       userId: this.user.id,
       status: enums.TransferStatuses.Success,
       toAddress: toAddress,
       amount: 2,
-      currency: 'OGN'
+      currency,
     })
 
     const response = await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 999999,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -499,22 +513,23 @@ describe('Lockup HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
+    const currency = 'OGN'
+
     await Lockup.create({
       userId: this.user.id,
       amount: 2,
       start: moment().subtract(1, 'days'),
-      end: moment()
-        .add(1, 'years')
-        .add(1, 'days'),
+      end: moment().add(1, 'years').add(1, 'days'),
+      currency,
       bonusRate: 10.0,
-      confirmed: true
+      confirmed: true,
     })
 
     const response = await request(this.mockApp)
       .post('/api/lockups')
       .send({
         amount: 999999,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -529,19 +544,19 @@ describe('Lockup HTTP API', () => {
         .post('/api/lockups')
         .send({
           amount: 100000,
-          code: totp.gen(this.otpKey)
+          code: totp.gen(this.otpKey),
         }),
       request(this.mockApp)
         .post('/api/lockups')
         .send({
           amount: 100,
-          code: totp.gen(this.otpKey)
-        })
+          code: totp.gen(this.otpKey),
+        }),
     ])
 
     expect(
       results.filter(
-        result => result.status !== 201 && result.text.match(/Unconfirmed/)
+        (result) => result.status !== 201 && result.text.match(/Unconfirmed/)
       ).length
     ).to.equal(1)
 
@@ -564,17 +579,17 @@ describe('Lockup HTTP API', () => {
         .send({
           amount: 100000,
           address: '0xf17f52151ebef6c7334fad080c5704d77216b732',
-          code: totp.gen(this.otpKey)
+          code: totp.gen(this.otpKey),
         }),
       request(this.mockApp)
         .post('/api/lockups')
         .send({
           amount: 100,
-          code: totp.gen(this.otpKey)
-        })
+          code: totp.gen(this.otpKey),
+        }),
     ])
 
-    expect(results.filter(result => result.status !== 201).length).to.equal(1)
+    expect(results.filter((result) => result.status !== 201).length).to.equal(1)
 
     // Check an email was sent with the confirmation token
     expect(sendStub.called).to.equal(true)
@@ -586,7 +601,7 @@ describe('Lockup HTTP API', () => {
       .post('/api/lockups')
       .send({
         amount: -10,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -603,7 +618,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 100,
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
 
     // Lockup the same size as the first vesting event
@@ -612,7 +627,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 600000,
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
   })
@@ -620,6 +635,8 @@ describe('Lockup HTTP API', () => {
   it('should not add an early lockup if not enough tokens in multiple same day next vest', async () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
+
+    const currency = 'OGN'
 
     // Add another grant with the same parameters as the grant being used for
     // the next vest tests, which will mean there are multiple vests on the same
@@ -629,7 +646,8 @@ describe('Lockup HTTP API', () => {
         userId: this.grants[1].userId,
         start: this.grants[1].start,
         end: this.grants[1].end,
-        amount: this.grants[1].amount
+        amount: this.grants[1].amount,
+        currency,
       })
     )
 
@@ -639,7 +657,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 100,
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
 
     // Lockup the same size as the first vesting event
@@ -648,7 +666,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 600000 * 2, // Full amount from combined same day next vests
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
   })
@@ -663,7 +681,7 @@ describe('Lockup HTTP API', () => {
       .send({
         amount: 1000,
         early: true,
-        code: totp.gen(this.otpKey)
+        code: totp.gen(this.otpKey),
       })
       .expect(422)
 
@@ -675,12 +693,12 @@ describe('Lockup HTTP API', () => {
   it('should confirm a lockup', async () => {
     const lockup = await Lockup.create({
       userId: this.user.id,
-      amount: 1000000
+      amount: 1000000,
     })
 
     const token = jwt.sign(
       {
-        lockupId: lockup.id
+        lockupId: lockup.id,
       },
       encryptionSecret,
       { expiresIn: `${lockupConfirmationTimeout}m` }
@@ -692,7 +710,7 @@ describe('Lockup HTTP API', () => {
       .expect(201)
 
     const updatedLockup = await Lockup.findOne({
-      where: { id: lockup.id }
+      where: { id: lockup.id },
     })
 
     expect(updatedLockup.confirmed).to.equal(true)
@@ -701,12 +719,12 @@ describe('Lockup HTTP API', () => {
   it('should not confirm a lockup with invalid token', async () => {
     const lockup = await Lockup.create({
       userId: this.user.id,
-      amount: 1000000
+      amount: 1000000,
     })
 
     const token = jwt.sign(
       {
-        lockupId: 'invalid'
+        lockupId: 'invalid',
       },
       encryptionSecret,
       { expiresIn: `${lockupConfirmationTimeout}m` }
@@ -723,12 +741,12 @@ describe('Lockup HTTP API', () => {
   it('should not confirm a lockup with an expired token', async () => {
     const lockup = await Lockup.create({
       userId: this.user.id,
-      amount: 1000000
+      amount: 1000000,
     })
 
     const token = jwt.sign(
       {
-        lockupId: lockup.id
+        lockupId: lockup.id,
       },
       encryptionSecret,
       { expiresIn: `${lockupConfirmationTimeout}m` }
@@ -736,10 +754,7 @@ describe('Lockup HTTP API', () => {
 
     // Go forward in time to expire the token
     const clock = sinon.useFakeTimers(
-      moment
-        .utc()
-        .add(lockupConfirmationTimeout, 'm')
-        .valueOf()
+      moment.utc().add(lockupConfirmationTimeout, 'm').valueOf()
     )
 
     const response = await request(this.mockApp)

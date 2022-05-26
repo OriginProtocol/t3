@@ -58,6 +58,7 @@ describe('Transfer HTTP API', () => {
         start: moment().subtract(4, 'years'),
         end: moment(),
         cliff: moment().subtract(3, 'years'),
+        currency: 'OGN',
         amount: 1000000,
         interval: 'days',
       }),
@@ -67,6 +68,7 @@ describe('Transfer HTTP API', () => {
         start: moment().add(10, 'years'),
         end: moment().add(14, 'years'),
         cliff: moment().add(11, 'years'),
+        currency: 'OGN',
         amount: 10000000,
         interval: 'days',
       }),
@@ -76,6 +78,7 @@ describe('Transfer HTTP API', () => {
         start: moment().subtract(6, 'months'),
         end: moment().add(6, 'months').add(3, 'years'),
         cliff: moment().add(6, 'months'),
+        currency: 'OGN',
         amount: 20000,
         interval: 'days',
       }),
@@ -124,6 +127,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 1000,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -139,8 +143,8 @@ describe('Transfer HTTP API', () => {
       status: enums.TransferStatuses.Success,
       fromAddress,
       toAddress,
-      amount: 10000,
       currency: 'OGN',
+      amount: 10000,
     })
 
     const response = await request(this.mockApp)
@@ -161,6 +165,7 @@ describe('Transfer HTTP API', () => {
     await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 1000,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -182,6 +187,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 1000,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -202,6 +208,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 1000001,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -223,13 +230,14 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.Enqueued,
       toAddress: toAddress,
-      amount: 2,
       currency: 'OGN',
+      amount: 2,
     })
 
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 999999,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -251,13 +259,14 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.Paused,
       toAddress: toAddress,
-      amount: 2,
       currency: 'OGN',
+      amount: 2,
     })
 
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 999999,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -279,13 +288,14 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingConfirmation,
       toAddress: toAddress,
-      amount: 2,
       currency: 'OGN',
+      amount: 2,
     })
 
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 999999,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -307,13 +317,14 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.Success,
       toAddress: toAddress,
-      amount: 2,
       currency: 'OGN',
+      amount: 2,
     })
 
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 999999,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -341,8 +352,8 @@ describe('Transfer HTTP API', () => {
         userId: this.user.id,
         status: status,
         toAddress: toAddress,
-        amount: 2,
         currency: 'OGN',
+        amount: 2,
       })
     })
 
@@ -351,6 +362,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 999993,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -369,6 +381,7 @@ describe('Transfer HTTP API', () => {
       request(this.mockApp)
         .post('/api/transfers')
         .send({
+          currency: 'OGN',
           amount: 1000000,
           address: toAddress,
           code: totp.gen(this.otpKey),
@@ -376,6 +389,7 @@ describe('Transfer HTTP API', () => {
       request(this.mockApp)
         .post('/api/transfers')
         .send({
+          currency: 'OGN',
           amount: 1,
           address: toAddress,
           code: totp.gen(this.otpKey),
@@ -394,6 +408,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: -10,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -407,6 +422,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 0,
         address: toAddress,
         code: totp.gen(this.otpKey),
@@ -421,8 +437,8 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
-      amount: 1000000,
       currency: 'OGN',
+      amount: 1000000,
     })
 
     const token = jwt.sign(
@@ -450,8 +466,8 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
-      amount: 1000000,
       currency: 'OGN',
+      amount: 1000000,
     })
 
     const token = jwt.sign(
@@ -475,8 +491,8 @@ describe('Transfer HTTP API', () => {
       userId: this.user.id,
       status: enums.TransferStatuses.WaitingEmailConfirm,
       toAddress: toAddress,
-      amount: 1000000,
       currency: 'OGN',
+      amount: 1000000,
     })
 
     const token = jwt.sign(
@@ -524,6 +540,7 @@ describe('Transfer HTTP API', () => {
     const response = await request(this.mockApp)
       .post('/api/transfers')
       .send({
+        currency: 'OGN',
         amount: 1,
         address: toAddress,
         code: otpCode,

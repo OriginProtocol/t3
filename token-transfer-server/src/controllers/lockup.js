@@ -8,7 +8,7 @@ const {
   asyncMiddleware,
   getEarlyLockupsEnabled,
   getLockupsEnabled,
-  getUnlockDate
+  getUnlockDate,
 } = require('../utils')
 const { ensureLoggedIn } = require('../lib/login')
 const { isValidTotp } = require('../validators')
@@ -27,7 +27,7 @@ router.get(
   asyncMiddleware(async (req, res) => {
     const lockups = await Lockup.findAll({ where: { userId: req.user.id } })
     res.json(
-      lockups.map(lockup => {
+      lockups.map((lockup) => {
         return lockup.get({ plain: true })
       })
     )
@@ -46,7 +46,7 @@ router.post(
       .isInt({ min: 100 })
       .withMessage('Amount must be 100 or greater'),
     check('code').custom(isValidTotp),
-    ensureLoggedIn
+    ensureLoggedIn,
   ],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
@@ -108,12 +108,7 @@ router.post(
  */
 router.post(
   '/lockups/:id',
-  [
-    check('token')
-      .not()
-      .isEmpty(),
-    ensureLoggedIn
-  ],
+  [check('token').not().isEmpty(), ensureLoggedIn],
   asyncMiddleware(async (req, res) => {
     const errors = validationResult(req)
     if (!errors.isEmpty()) {
@@ -141,7 +136,7 @@ router.post(
     }
 
     const lockup = await Lockup.findOne({
-      where: { id: decodedToken.lockupId, userId: req.user.id }
+      where: { id: decodedToken.lockupId, userId: req.user.id },
     })
     if (!lockup) {
       return res.status(404)
