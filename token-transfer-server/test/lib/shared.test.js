@@ -15,7 +15,7 @@ const {
   calculateEarnings,
   calculateLocked,
   calculateNextVestLocked,
-  getNextVest
+  getNextVest,
 } = require('../../src/shared')
 const { Grant, Lockup, User, sequelize } = require('../../src/models')
 
@@ -30,7 +30,7 @@ describe('Shared library', () => {
       name: 'User 1',
       otpKey: '123',
       otpVerified: true,
-      employee: true
+      employee: true,
     })
 
     this.grant = await Grant.create({
@@ -38,21 +38,22 @@ describe('Shared library', () => {
       start: moment.utc().subtract(2, 'years'),
       end: moment.utc().add(2, 'years'),
       cliff: moment.utc().subtract(1, 'years'),
-      amount: 100000
+      currency: 'OGN',
+      amount: 100000,
     })
   })
 
   it('should calculate granted', () => {
-    expect(
-      calculateGranted([this.grant.get({ plain: true })])
-    ).to.be.bignumber.equal(100000)
+    const granted = calculateGranted([this.grant.get({ plain: true })])
+    expect(granted.OGN).to.be.bignumber.equal(100000)
+    expect(granted.OGV).to.be.bignumber.equal(0)
   })
 
   it('should calculate vested', () => {
     // Not 50% due to rounding down
-    expect(
-      calculateVested(this.user, [this.grant.get({ plain: true })])
-    ).to.be.bignumber.equal(49996)
+    const vested = calculateVested(this.user, [this.grant.get({ plain: true })])
+    expect(vested.OGN).to.be.bignumber.equal(49996)
+    expect(vested.OGV).to.be.bignumber.equal(0)
   })
 
   it('should calculate unlocked earnings', async () => {
@@ -64,15 +65,17 @@ describe('Shared library', () => {
           start: moment.utc(),
           end: moment.utc().add(1, 'years'),
           code: totp.gen(this.otpKey),
+          currency: 'OGN',
           bonusRate: 10.0,
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
-    expect(calculateUnlockedEarnings(incompleteLockups)).to.be.bignumber.equal(
-      0
-    )
+    const incompleteUnlocked = calculateUnlockedEarnings(incompleteLockups)
+
+    expect(incompleteUnlocked.OGN).to.be.bignumber.equal(0)
+    expect(incompleteUnlocked.OGV).to.be.bignumber.equal(0)
 
     const completeLockups = [
       (
@@ -82,15 +85,17 @@ describe('Shared library', () => {
           start: moment.utc().subtract(1, 'years'),
           end: moment.utc(),
           code: totp.gen(this.otpKey),
+          currency: 'OGN',
           bonusRate: 10.0,
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
-    expect(calculateUnlockedEarnings(completeLockups)).to.be.bignumber.equal(
-      100
-    )
+    const completeUnlocked = calculateUnlockedEarnings(completeLockups)
+
+    expect(completeUnlocked.OGN).to.be.bignumber.equal(100)
+    expect(completeUnlocked.OGV).to.be.bignumber.equal(0)
   })
 
   it('should calculate all earnings', async () => {
@@ -102,10 +107,11 @@ describe('Shared library', () => {
           start: moment.utc(),
           end: moment.utc().add(1, 'years'),
           code: totp.gen(this.otpKey),
+          currency: 'OGN',
           bonusRate: 10.0,
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
     const completeLockups = [
@@ -116,15 +122,18 @@ describe('Shared library', () => {
           start: moment.utc().subtract(1, 'years'),
           end: moment.utc(),
           code: totp.gen(this.otpKey),
+          currency: 'OGN',
           bonusRate: 10.0,
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
     const lockups = [...incompleteLockups, ...completeLockups]
 
-    expect(calculateEarnings(lockups)).to.be.bignumber.equal(200)
+    const earnings = calculateEarnings(lockups)
+    expect(earnings.OGN).to.be.bignumber.equal(200)
+    expect(earnings.OGV).to.be.bignumber.equal(0)
   })
 
   it('should exclude early lockups for unvested tokens from locked calculation', async () => {
@@ -140,19 +149,20 @@ describe('Shared library', () => {
           userId: this.user.id,
           amount: Number(nextVest.amount),
           start: moment().subtract(1, 'days'),
-          end: moment()
-            .add(1, 'years')
-            .add(1, 'days'),
+          end: moment().add(1, 'years').add(1, 'days'),
+          currency: 'OGN',
           bonusRate: 10.0,
           data: {
-            vest: nextVest
+            vest: nextVest,
           },
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
-    expect(calculateLocked(lockups)).to.be.bignumber.equal(0)
+    const locked = calculateLocked(lockups)
+    expect(locked.OGN).to.be.bignumber.equal(0)
+    expect(locked.OGV).to.be.bignumber.equal(0)
   })
 
   it('should include early lockups for vested tokens from locked calculation', async () => {
@@ -168,27 +178,25 @@ describe('Shared library', () => {
           userId: this.user.id,
           amount: Number(nextVest.amount),
           start: moment().subtract(1, 'days'),
-          end: moment()
-            .add(1, 'years')
-            .add(1, 'days'),
+          end: moment().add(1, 'years').add(1, 'days'),
+          currency: 'OGN',
           bonusRate: 10.0,
           data: {
-            vest: nextVest
+            vest: nextVest,
           },
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
     // Jump passed next vest
     const clock = sinon.useFakeTimers(
-      moment
-        .utc(nextVest.date)
-        .add(1, 'seconds')
-        .valueOf()
+      moment.utc(nextVest.date).add(1, 'seconds').valueOf()
     )
 
-    expect(calculateLocked(lockups)).to.be.bignumber.equal(nextVest.amount)
+    const locked = calculateLocked(lockups)
+    expect(locked.OGN).to.be.bignumber.equal(nextVest.amount)
+    expect(locked.OGV).to.be.bignumber.equal(0)
 
     clock.restore()
   })
@@ -206,20 +214,19 @@ describe('Shared library', () => {
           userId: this.user.id,
           amount: Number(nextVest.amount),
           start: moment().subtract(1, 'days'),
-          end: moment()
-            .add(1, 'years')
-            .add(1, 'days'),
+          end: moment().add(1, 'years').add(1, 'days'),
+          currency: 'OGN',
           bonusRate: 10.0,
           data: {
-            vest: nextVest
+            vest: nextVest,
           },
-          confirmed: true
+          confirmed: true,
         })
-      ).get({ plain: true })
+      ).get({ plain: true }),
     ]
 
-    expect(calculateNextVestLocked(lockups)).to.be.bignumber.equal(
-      nextVest.amount
-    )
+    const nextVestLocked = calculateNextVestLocked(lockups)
+    expect(nextVestLocked.OGN).to.be.bignumber.equal(nextVest.amount)
+    expect(nextVestLocked.OGV).to.be.bignumber.equal(0)
   })
 })

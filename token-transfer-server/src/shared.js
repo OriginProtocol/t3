@@ -91,7 +91,10 @@ function calculateUnlockedEarnings(lockups) {
         .div(BigNumber(100))
         // @ts-ignore
         .toFixed(0, BigNumber.ROUND_HALF_UP)
-      return totals[lockup.currency].plus(earnings)
+      return {
+        ...totals,
+        [lockup.currency]: totals[lockup.currency].plus(earnings),
+      }
     }
     return totals
     // @ts-ignore
@@ -113,7 +116,10 @@ function calculateEarnings(lockups) {
         .div(BigNumber(100))
         // @ts-ignore
         .toFixed(0, BigNumber.ROUND_HALF_UP)
-      return totals[lockup.currency].plus(earnings)
+      return {
+        ...totals,
+        [lockup.currency]: totals[lockup.currency].plus(earnings),
+      }
     }
     return totals
     // @ts-ignore
@@ -138,25 +144,30 @@ function calculateLocked(lockups) {
       moment.utc(lockup.end).isAfter(moment.utc()) // Lockup has not yet ended
     ) {
       // @ts-ignore
-      return totals[lockup.currency].plus(BigNumber(lockup.amount))
+      return {
+        ...totals,
+        [lockup.currency]: totals[lockup.currency].plus(
+          BigNumber(lockup.amount)
+        ),
+      }
     }
     return totals
     // @ts-ignore
   }, currencyAmounts)
 }
 
-/** Determine if a lockup is an arly lockup based
+/** Determine if a lockup is an early lockup based
  * @param {Object} lockup: lockup object.
  */
 const isEarlyLockup = (lockup) => {
   return !!(lockup.data && lockup.data.vest && lockup.data.vest.grantId)
 }
 
-/** Calculate tokens from the next vest that are locked due to early lockups.
+/** Calculate tokens from the next OGN vest that are locked due to early lockups.
  * @param {[Object]} lockups: array of lockups.
  */
 function calculateNextVestLocked(lockups) {
-  return lockups.reduce((total, lockup) => {
+  return lockups.reduce((totals, lockup) => {
     // Assume every early lockup with a recorded vest date in the future is
     // attributable to the next vest
     if (
@@ -164,17 +175,24 @@ function calculateNextVestLocked(lockups) {
       moment.utc(lockup.data.vest.date) > moment.utc()
     ) {
       // @ts-ignore
-      return total.plus(BigNumber(lockup.amount))
+      return {
+        ...totals,
+        [lockup.currency]: totals[lockup.currency].plus(
+          BigNumber(lockup.amount)
+        ),
+      }
     }
-    return total
+    return totals
     // @ts-ignore
-  }, BigNumber(0))
+  }, currencyAmounts)
 }
 
 function getNextVest(grants, user) {
   // Flat map implementation, can remove in node >11
   const flatMap = (a, cb) => [].concat(...a.map(cb))
-  const allGrantVestingSchedule = flatMap(grants, (grant) => {
+  // Lockups are/were only applicable to OGN grants
+  const filteredGrants = grants.filter((g) => g.currency === 'OGN')
+  const allGrantVestingSchedule = flatMap(filteredGrants, (grant) => {
     return vestingSchedule(user, grant)
   })
   const sortedUnvested = allGrantVestingSchedule
