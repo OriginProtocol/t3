@@ -48,6 +48,8 @@ export const getTotals = (user, state) => {
   const grants = getGrants(state)
   const granted = calculateGranted(grants)
   const vested = calculateVested(user, grants)
-  const unvested = granted.minus(vested)
+  const unvested = Object.fromEntries(
+    Object.keys(granted).map(k => [k, granted[k].minus(vested[k])])
+  )
   return { granted, vested, unvested }
 }

@@ -89,118 +89,137 @@ const VestingBars = ({ user }) => {
     })
   }
 
-  const total = BigNumber(data.totals.vested).plus(
-    BigNumber(data.totals.unvested)
-  )
-
   return (
     <div className="mb-5">
       <h2 style={{ marginBottom: '2.5rem' }}>Vesting Progress</h2>
-      <div id="vestingBars" style={{ position: 'relative' }}>
-        <div
-          style={{ position: 'absolute', right: '10px', marginTop: '-1.5rem' }}
-        >
-          <strong>{Number(total).toLocaleString()}</strong>{' '}
-          <span className="ogn">OGN</span>
-        </div>
-        {grants.map(grant => {
-          // Calculate the percentage of the grant that is complete with a
-          // upper bound of 100
-          const complete = Math.min(
-            ((now - grant.start) / (grant.end - grant.start)) * 100,
-            100
-          )
-          // Calculate the width of the grant relative to the width of the
-          // total component
-          const width = ((grant.end - grant.start) / totalDuration) * 100
-          // Calculate the left indentation from the left side of the component
-          const left = ((grant.start - firstStartDate) / totalDuration) * 100
-
-          return (
-            <div
-              className="progress mt-3 pointer"
-              key={grant.id}
-              style={{ width: `${width}%`, marginLeft: `${left}%` }}
-              onClick={event => handleTogglePopover(event, grant.id)}
-            >
-              <div
-                className="progress-bar bg-green"
-                role="progressbar"
-                style={{ width: `${complete}%`, zIndex: 10 }}
-              />
-              {displayPopover[grant.id] && (
-                <div
-                  className="popover"
-                  style={{ left: `${displayPopover[grant.id]}px`, top: '10px' }}
-                >
-                  <div
-                    className="cover"
-                    onClick={event => handleTogglePopover(event, grant.id)}
-                  />
-                  <div>
-                    <strong>Start</strong> {grant.start.format('L')}
-                  </div>
-                  {grant.cliff && (
-                    <div>
-                      <strong>Cliff</strong> {grant.cliff.format('L')}
-                    </div>
-                  )}
-                  <div>
-                    <strong>End</strong> {grant.end.format('L')}
-                  </div>
-                  <div>
-                    <strong>Grant</strong>{' '}
-                    {Number(grant.amount).toLocaleString()}{' '}
-                    <span className="ogn">OGN</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-
-        {generateMarkers().map(marker => {
-          const style = {
-            position: 'absolute',
-            left: `${marker.left}%`,
-            top: 0,
-            height: `${1 + 2 * grants.length}rem`,
-            marginTop: '-1rem',
-            pointerEvents: 'none' // Stop absolute positioning from stealing clicks
-          }
-          return (
-            <div key={marker.label} style={style}>
+      {Object.keys(data.totals.granted).map(currency => {
+        const total = BigNumber(data.totals.vested[currency]).plus(
+          BigNumber(data.totals.unvested[currency])
+        )
+        const currencyGrants = grants.filter(g => g.currency === currency)
+        if (currencyGrants.length === 0) return null
+        return (
+          <>
+            <div id="vestingBars" style={{ position: 'relative' }}>
               <div
                 style={{
-                  borderLeft: '1px solid #dbe6eb',
-                  height: '100%',
-                  width: 0
+                  position: 'absolute',
+                  right: '10px',
+                  marginTop: '-1.5rem'
                 }}
-              ></div>
-              <div style={{ marginLeft: '-50%' }}>
-                <small className="text-muted">{marker.label}</small>
+              >
+                <strong>{Number(total).toLocaleString()}</strong>{' '}
+                <span className="ogn">{currency}</span>
+              </div>
+              {currencyGrants.map(grant => {
+                // Calculate the percentage of the grant that is complete with a
+                // upper bound of 100
+                const complete = Math.min(
+                  ((now - grant.start) / (grant.end - grant.start)) * 100,
+                  100
+                )
+                // Calculate the width of the grant relative to the width of the
+                // total component
+                const width = ((grant.end - grant.start) / totalDuration) * 100
+                // Calculate the left indentation from the left side of the component
+                const left =
+                  ((grant.start - firstStartDate) / totalDuration) * 100
+
+                return (
+                  <div
+                    className="progress mt-3 pointer"
+                    key={grant.id}
+                    style={{ width: `${width}%`, marginLeft: `${left}%` }}
+                    onClick={event => handleTogglePopover(event, grant.id)}
+                  >
+                    <div
+                      className="progress-bar bg-green"
+                      role="progressbar"
+                      style={{ width: `${complete}%`, zIndex: 10 }}
+                    />
+                    {displayPopover[grant.id] && (
+                      <div
+                        className="popover"
+                        style={{
+                          left: `${displayPopover[grant.id]}px`,
+                          top: '10px'
+                        }}
+                      >
+                        <div
+                          className="cover"
+                          onClick={event =>
+                            handleTogglePopover(event, grant.id)
+                          }
+                        />
+                        <div>
+                          <strong>Start</strong> {grant.start.format('L')}
+                        </div>
+                        {grant.cliff && (
+                          <div>
+                            <strong>Cliff</strong> {grant.cliff.format('L')}
+                          </div>
+                        )}
+                        <div>
+                          <strong>End</strong> {grant.end.format('L')}
+                        </div>
+                        <div>
+                          <strong>Grant</strong>{' '}
+                          {Number(grant.amount).toLocaleString()}{' '}
+                          <span className="ogn">{grant.currency}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {generateMarkers().map(marker => {
+                const style = {
+                  position: 'absolute',
+                  left: `${marker.left}%`,
+                  top: 0,
+                  height: `${1 + 2 * grants.length}rem`,
+                  marginTop: '-1rem',
+                  pointerEvents: 'none' // Stop absolute positioning from stealing clicks
+                }
+                return (
+                  <div key={marker.label} style={style}>
+                    <div
+                      style={{
+                        borderLeft: '1px solid #dbe6eb',
+                        height: '100%',
+                        width: 0
+                      }}
+                    ></div>
+                    <div style={{ marginLeft: '-50%' }}>
+                      <small className="text-muted">{marker.label}</small>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div
+              className="row"
+              style={{ marginTop: `${3 + 0.5 * grants.length}rem` }}
+            >
+              <div className="col-12 col-sm-6">
+                <div className="status-circle bg-green mr-2"></div>
+                <span className=" text-muted">
+                  {Number(data.totals.vested[currency]).toLocaleString()}{' '}
+                  {currency} vested
+                </span>
+              </div>
+              <div className="col-12 col-sm-6">
+                <div className="status-circle mr-2"></div>
+                <span className=" text-muted">
+                  {Number(data.totals.unvested[currency]).toLocaleString()}{' '}
+                  {currency} unvested
+                </span>
               </div>
             </div>
-          )
-        })}
-      </div>
-      <div
-        className="row"
-        style={{ marginTop: `${3 + 0.5 * grants.length}rem` }}
-      >
-        <div className="col-12 col-sm-6">
-          <div className="status-circle bg-green mr-2"></div>
-          <span className=" text-muted">
-            {Number(data.totals.vested).toLocaleString()} OGN vested
-          </span>
-        </div>
-        <div className="col-12 col-sm-6">
-          <div className="status-circle mr-2"></div>
-          <span className=" text-muted">
-            {Number(data.totals.unvested).toLocaleString()} OGN unvested
-          </span>
-        </div>
-      </div>
+          </>
+        )
+      })}
     </div>
   )
 }

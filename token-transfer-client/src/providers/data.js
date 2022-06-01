@@ -56,14 +56,18 @@ const _DataProvider = ({ children, ...rest }) => {
     )
   }
 
+  const balance = Object.keys(rest.grantTotals.granted).reduce(
+    (totals, currency) => {
+      totals[currency] = rest.grantTotals.vested[currency]
+        .minus(rest.withdrawn[currency])
+        .minus(rest.lockupTotals.locked[currency])
+        .plus(rest.lockupTotals.unlockedEarnings[currency])
+      return totals
+    },
+    {}
+  )
+
   // Calculate balances
-  const balance = rest.grantTotals.vested
-    // Subtract any withdrawn
-    .minus(rest.withdrawn)
-    // Subtract any locked tokens
-    .minus(rest.lockupTotals.locked)
-    // Earnings from lockups that are unlocked
-    .plus(rest.lockupTotals.unlockedEarnings)
 
   const configOverrides = window.localStorage.configOverrides
     ? JSON.parse(window.localStorage.configOverrides)
