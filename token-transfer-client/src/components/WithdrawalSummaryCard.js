@@ -82,7 +82,7 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
                   <button
                     className={`btn btn-lg btn-outline-${theme === 'dark' ? 'light' : 'primary'
                       }`}
-                    onClick={onDisplayWithdrawModal}
+                    onClick={() => onDisplayWithdrawModal(currency)}
                   >
                     Withdraw {currency}
                   </button>

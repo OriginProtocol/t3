@@ -91,12 +91,14 @@ class WithdrawModal extends Component {
     event.preventDefault()
 
     if (
-      BigNumber(this.state.amount).isGreaterThan(this.context.totals.balance)
+      BigNumber(this.state.amount).isGreaterThan(
+        this.context.totals.balance[this.props.currency]
+      )
     ) {
       this.setState({
         amountError: `Withdrawal amount is greater than your balance of ${Number(
           this.context.totals.balance
-        ).toLocaleString()} OGN`
+        ).toLocaleString()} ${this.props.currency.toUpperCase()}`
       })
       return
     }
@@ -131,7 +133,8 @@ class WithdrawModal extends Component {
     const result = await this.props.addTransfer({
       amount: this.state.amount,
       address: this.state.address,
-      code: this.state.code
+      code: this.state.code,
+      currency: this.props.currency
     })
 
     if (result.type === 'ADD_TRANSFER_SUCCESS') {
@@ -212,7 +215,9 @@ class WithdrawModal extends Component {
             className="mr-3 d-none d-sm-inline-block"
             style={{ marginTop: '-10px' }}
           />
-          <h1 className="my-3 d-inline-block">Withdraw OGN</h1>
+          <h1 className="my-3 d-inline-block">
+            Withdraw {this.props.currency}
+          </h1>
         </div>
       </div>
     )
@@ -372,20 +377,20 @@ class WithdrawModal extends Component {
         <form onSubmit={this.handleFormSubmit}>
           <div className="row">
             <div
-              className={`col-12${
-                this.context.config.otcRequestEnabled ? ' col-sm-6' : ''
-              }`}
+              className={`col-12${this.context.config.otcRequestEnabled ? ' col-sm-6' : ''
+                }`}
             >
               <div className="form-group">
                 <label htmlFor="amount">Amount of Tokens</label>
                 <div
-                  className={`input-group ${
-                    this.state.amountError ? 'is-invalid' : ''
-                  }`}
+                  className={`input-group ${this.state.amountError ? 'is-invalid' : ''
+                    }`}
                 >
                   <input {...input('amount')} type="number" />
                   <div className="input-group-append">
-                    <span className="badge badge-secondary">OGN</span>
+                    <span className="badge badge-secondary">
+                      {this.props.currency}
+                    </span>
                   </div>
                 </div>
                 <div
@@ -395,7 +400,7 @@ class WithdrawModal extends Component {
                 </div>
               </div>
               {this.context.accounts.length > 0 &&
-              !this.state.modalAddAccount ? (
+                !this.state.modalAddAccount ? (
                 <>
                   <div className="form-group">
                     <label htmlFor="address">Destination Account</label>
@@ -455,7 +460,8 @@ class WithdrawModal extends Component {
                     <WhaleIcon className="mb-3" />
                   </div>
                   <strong className="mb-2">
-                    Selling a large quantity of OGN?
+                    Selling a large quantity of{' '}
+                    {this.props.currency.toUpperCase()}?
                   </strong>
                   <p>
                     Try an OTC (over-the-counter) trade. OTC trades oftentimes

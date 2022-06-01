@@ -46,6 +46,7 @@ const Dashboard = props => {
             setDisplayStakeModal(true)
           }}
           onModalClose={() => setDisplayWithdrawModal(false)}
+          currency={displayWithdrawModal}
         />
       )}
       {displayOtcRequestModal && (
@@ -86,7 +87,9 @@ const Dashboard = props => {
         <div className="col col-xl-6">
           <div className="mb-10">
             <WithdrawalSummaryCard
-              onDisplayWithdrawModal={() => setDisplayWithdrawModal(true)}
+              onDisplayWithdrawModal={currency =>
+                setDisplayWithdrawModal(currency)
+              }
             />
           </div>
           <div className="mb-10">
