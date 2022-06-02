@@ -26,7 +26,7 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
         const remainingPercent = 100 - withdrawnPercent
 
         return (
-          <>
+          <div key={currency}>
             <h2>{currency}</h2>
             <div className="row mb-2">
               <div className="col text-muted">Vested To Date</div>
@@ -89,7 +89,7 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
                 </div>
               </div>
             )}
-          </>
+          </div>
         )
       })}
     </BorderedCard>

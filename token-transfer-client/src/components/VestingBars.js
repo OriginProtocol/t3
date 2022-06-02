@@ -99,7 +99,7 @@ const VestingBars = ({ user }) => {
         const currencyGrants = grants.filter(g => g.currency === currency)
         if (currencyGrants.length === 0) return null
         return (
-          <>
+          <div key={currency}>
             <div id="vestingBars" style={{ position: 'relative' }}>
               <div
                 style={{
@@ -220,7 +220,7 @@ const VestingBars = ({ user }) => {
                 </span>
               </div>
             </div>
-          </>
+          </div>
         )
       })}
     </div>

@@ -93,7 +93,7 @@ const Lockup = () => {
               <tr>
                 <td className="table-empty-cell" colSpan="100%">
                   {data.config.isLocked
-                    ? 'Tokens have not been ulocked yet'
+                    ? 'Tokens have not been unlocked yet'
                     : 'You do not have any lockups'}
                 </td>
               </tr>

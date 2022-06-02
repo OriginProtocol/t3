@@ -76,8 +76,8 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
             <h2>My Vested Tokens</h2>
           </div>
         </div>
-        {Object.keys(data.totals.granted).map(currency => {
-          ; <div className="row">
+        {Object.keys(data.totals.granted).map(currency => (
+          <div className="row mt-5" key={currency}>
             {data.config.lockupsEnabled &&
               (data.totals.balance[currency] > 0 ||
                 data.totals.locked[currency] > 0) && (
@@ -115,7 +115,7 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
                         data.totals.balance[currency]
                       ).toLocaleString()}{' '}
                   </div>
-                  <span className="ogn">OGN</span>
+                  <span className="ogn">{currency}</span>
                 </div>
                 <div className="col-1 text-right">
                   <Dropdown drop={'left'} style={{ display: 'inline' }}>
@@ -182,7 +182,7 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
               )}
             </div>
           </div>
-        })}
+        ))}
       </BorderedCard>
     </>
   )
