@@ -13,12 +13,15 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
 
   const [redirectTo, setRedirectTo] = useState(false)
 
-  const doughnutData = () => {
+  const doughnutData = currency => {
     return {
       labels: ['Available', 'Locked'],
       datasets: [
         {
-          data: [Number(data.totals.balance), Number(data.totals.locked)],
+          data: [
+            Number(data.totals.balance[currency]),
+            Number(data.totals.locked[currency])
+          ],
           backgroundColor: ['#00db8d', '#007cff'],
           borderWidth: 0
         }
@@ -86,7 +89,7 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
                     <Doughnut
                       height={100}
                       width={100}
-                      data={doughnutData}
+                      data={doughnutData(currency)}
                       options={{ cutoutPercentage: 70 }}
                       legend={{ display: false }}
                     />

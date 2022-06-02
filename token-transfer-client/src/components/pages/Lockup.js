@@ -56,7 +56,7 @@ const Lockup = () => {
                 style={{ marginLeft: '-1.5rem', marginRight: '0.5rem' }}
               ></div>{' '}
               {Number(lockup.amount).toLocaleString()}{' '}
-              <span className="ogn">OGN</span>
+              <span className="ogn">{lockup.currency}</span>
             </td>
             <td>
               <div
@@ -69,7 +69,7 @@ const Lockup = () => {
                   BigNumber.ROUND_HALF_UP
                 )
               ).toLocaleString()}{' '}
-              <span className="ogn">OGN</span>
+              <span className="ogn">{lockup.currency}</span>
             </td>
             <td>{lockup.bonusRate}%</td>
           </tr>
@@ -116,33 +116,29 @@ const Lockup = () => {
         <div className="col-12 col-md-4">
           <h1 className="mb-2">Bonus Tokens</h1>
         </div>
-        <div className="col-12 col-md-2">
-          <small>
-            <strong className="mr-2">Total Locked Up </strong>
-            {Number(
-              data.totals.locked.plus(data.totals.nextVestLocked)
-            ).toLocaleString()}{' '}
-            OGN
-          </small>
-        </div>
-        <div className="col-12 col-md-2">
-          <small>
-            <strong className="mr-2">Total Earned </strong>
-            {Number(data.totals.allEarnings.toLocaleString())} OGN
-          </small>
-        </div>
-        {!data.config.isLocked && (
-          <div className="col text-md-right">
-            <button
-              className="btn btn-lg btn-primary mt-4 mt-md-0"
-              onClick={() => setDisplayStakeModal(true)}
-              disabled={!data.config.lockupsEnabled}
-            >
-              Earn OGN
-            </button>
-          </div>
-        )}
       </div>
+      {Object.keys(data.totals.granted).map(currency => (
+        <div className="row align-items-center" key={currency}>
+          <div className="col-12 col-md-2">
+            <small>
+              <strong className="mr-2">Total Locked Up </strong>
+              {Number(
+                data.totals.locked[currency].plus(
+                  data.totals.nextVestLocked[currency]
+                )
+              ).toLocaleString()}{' '}
+              OGN
+            </small>
+          </div>
+          <div className="col-12 col-md-2">
+            <small>
+              <strong className="mr-2">Total Earned </strong>
+              {Number(data.totals.allEarnings[currency].toLocaleString())}{' '}
+              {currency}
+            </small>
+          </div>
+        </div>
+      ))}
       <hr />
       <div className="row">
         <div className="col">{renderLockups(data.lockups)}</div>

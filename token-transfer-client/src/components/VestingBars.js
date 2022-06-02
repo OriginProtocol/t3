@@ -104,7 +104,7 @@ const VestingBars = ({ user }) => {
               <div
                 style={{
                   position: 'absolute',
-                  right: '10px',
+                  right: '20px',
                   marginTop: '-1.5rem'
                 }}
               >
@@ -200,7 +200,10 @@ const VestingBars = ({ user }) => {
             </div>
             <div
               className="row"
-              style={{ marginTop: `${3 + 0.5 * grants.length}rem` }}
+              style={{
+                marginTop: `${4 + 0.5 * grants.length}rem`,
+                marginBottom: `4rem`
+              }}
             >
               <div className="col-12 col-sm-6">
                 <div className="status-circle bg-green mr-2"></div>

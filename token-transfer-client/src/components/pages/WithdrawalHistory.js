@@ -22,40 +22,47 @@ const WithdrawalHistory = ({ history }) => {
         <div className="col-12 col-md-4">
           <h1 className="mb-2">History</h1>
         </div>
-        <div className="col-12 col-md-2 text-md-right">
-          <small>
-            <strong>Available </strong>
-            {data.config.isLocked
-              ? 0
-              : Number(data.totals.balance).toLocaleString()}{' '}
-            OGN
-          </small>
-        </div>
-        <div className="col-12 col-md-2 text-md-right">
-          <small>
-            <strong>Withdrawn </strong>
-            <span className="text-nowrap">
-              {Number(data.totals.withdrawn).toLocaleString()} OGN
-            </span>
-          </small>
-        </div>
-        <div className="col-12 col-md-2 text-md-right">
-          <small>
-            <strong>Unvested </strong>
-            <span className="text-nowrap">
-              {Number(data.totals.unvested).toLocaleString()} OGN
-            </span>
-          </small>
-        </div>
-        <div className="col-12 col-md-2 text-md-right">
-          <small>
-            <strong>Total purchase </strong>
-            <span className="text-nowrap">
-              {Number(data.totals.granted).toLocaleString()} OGN
-            </span>
-          </small>
-        </div>
       </div>
+      {Object.keys(data.totals.granted).map(currency => (
+        <div className="row align-items-center" key={currency}>
+          <div className="col-12 col-md-2">
+            <small>
+              <strong>Available </strong>
+              {data.config.isLocked
+                ? 0
+                : Number(data.totals.balance[currency]).toLocaleString()}{' '}
+              {currency}
+            </small>
+          </div>
+          <div className="col-12 col-md-2">
+            <small>
+              <strong>Withdrawn </strong>
+              <span className="text-nowrap">
+                {Number(data.totals.withdrawn[currency]).toLocaleString()}{' '}
+                {currency}
+              </span>
+            </small>
+          </div>
+          <div className="col-12 col-md-2">
+            <small>
+              <strong>Unvested </strong>
+              <span className="text-nowrap">
+                {Number(data.totals.unvested[currency]).toLocaleString()}{' '}
+                {currency}
+              </span>
+            </small>
+          </div>
+          <div className="col-12 col-md-2">
+            <small>
+              <strong>Total purchase </strong>
+              <span className="text-nowrap">
+                {Number(data.totals.granted[currency]).toLocaleString()}{' '}
+                {currency}
+              </span>
+            </small>
+          </div>
+        </div>
+      ))}
       <hr />
       <div className="row">
         <div className="col">
@@ -89,7 +96,7 @@ const WithdrawalHistory = ({ history }) => {
                         <strong>
                           {Number(transfer.amount).toLocaleString()}
                         </strong>{' '}
-                        <span className="ogn">OGN</span>
+                        <span className="ogn">{transfer.currency}</span>
                       </td>
                       <td>{get(transfer.data, 'ip', 'Unknown')}</td>
                       <td>
@@ -122,11 +129,11 @@ const WithdrawalHistory = ({ history }) => {
                           enums.TransferStatuses.WaitingConfirmation,
                           enums.TransferStatuses.Processing
                         ].includes(transfer.status) && (
-                          <>
-                            <div className="status-circle bg-orange mr-2"></div>
-                            Processing
-                          </>
-                        )}
+                            <>
+                              <div className="status-circle bg-orange mr-2"></div>
+                              Processing
+                            </>
+                          )}
                         {transfer.status === enums.TransferStatuses.Paused && (
                           <>
                             <div className="status-circle bg-red mr-2"></div>
@@ -149,11 +156,11 @@ const WithdrawalHistory = ({ history }) => {
                           enums.TransferStatuses.Expired,
                           enums.TransferStatuses.Cancelled
                         ].includes(transfer.status) && (
-                          <>
-                            <div className="status-circle bg-red mr-2"></div>
-                            {transfer.status}
-                          </>
-                        )}
+                            <>
+                              <div className="status-circle bg-red mr-2"></div>
+                              {transfer.status}
+                            </>
+                          )}
                       </td>
                     </tr>
                   ))
