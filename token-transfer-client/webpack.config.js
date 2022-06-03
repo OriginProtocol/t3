@@ -116,9 +116,13 @@ const webpackConfig = {
     headers: {
       'Access-Control-Allow-Origin': '*'
     },
-    contentBase: [
-      path.join(__dirname, 'public'),
-      path.join(__dirname, 'src/css')
+    static: [
+      {
+        directory: path.join(__dirname, 'public')
+      },
+      {
+        directory: path.join(__dirname, 'src/css')
+      }
     ]
   },
   mode: isProduction ? 'production' : 'development',
