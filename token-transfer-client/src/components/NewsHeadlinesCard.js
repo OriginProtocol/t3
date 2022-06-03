@@ -3,7 +3,7 @@ import { connect } from 'react-redux'
 import { bindActionCreators } from 'redux'
 import { NavLink } from 'react-router-dom'
 import Swiper from 'react-id-swiper'
-import 'swiper/css/swiper.css'
+import 'swiper/swiper.min.css'
 
 import { fetchNews } from '@/actions/news'
 import {

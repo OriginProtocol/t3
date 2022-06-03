@@ -3,7 +3,7 @@ import moment from 'moment'
 import get from 'lodash.get'
 
 import Swiper from 'react-id-swiper'
-import 'swiper/css/swiper.css'
+import 'swiper/swiper.min.css'
 
 const GrantDetail = ({ grants, user }) => {
   const swiperParams = {
