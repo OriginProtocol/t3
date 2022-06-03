@@ -117,28 +117,34 @@ const Lockup = () => {
           <h1 className="mb-2">Bonus Tokens</h1>
         </div>
       </div>
-      {Object.keys(data.totals.granted).map(currency => (
-        <div className="row align-items-center" key={currency}>
-          <div className="col-12 col-md-2">
-            <small>
-              <strong className="mr-2">Total Locked Up </strong>
-              {Number(
-                data.totals.locked[currency].plus(
-                  data.totals.nextVestLocked[currency]
-                )
-              ).toLocaleString()}{' '}
-              OGN
-            </small>
+      {Object.keys(data.totals.granted).map(currency => {
+        if (data.grants.find(g => g.currency === currency) === undefined)
+          return null
+        return (
+          <div className="row align-items-center" key={currency}>
+            <div className="col-12 col-md-2">
+              <small>
+                <strong className="mr-2">Total Locked Up </strong>
+                {Number(
+                  data.totals.locked[currency].plus(
+                    data.totals.nextVestLocked[currency]
+                  )
+                ).toLocaleString()}{' '}
+                OGN
+              </small>
+            </div>
+            <div className="col-12 col-md-2">
+              <small>
+                <strong className="mr-2">Total Earned </strong>
+                {Number(
+                  data.totals.allEarnings[currency].toLocaleString()
+                )}{' '}
+                {currency}
+              </small>
+            </div>
           </div>
-          <div className="col-12 col-md-2">
-            <small>
-              <strong className="mr-2">Total Earned </strong>
-              {Number(data.totals.allEarnings[currency].toLocaleString())}{' '}
-              {currency}
-            </small>
-          </div>
-        </div>
-      ))}
+        )
+      })}
       <hr />
       <div className="row">
         <div className="col">{renderLockups(data.lockups)}</div>

@@ -23,46 +23,51 @@ const WithdrawalHistory = ({ history }) => {
           <h1 className="mb-2">History</h1>
         </div>
       </div>
-      {Object.keys(data.totals.granted).map(currency => (
-        <div className="row align-items-center" key={currency}>
-          <div className="col-12 col-md-2">
-            <small>
-              <strong>Available </strong>
-              {data.config.isLocked
-                ? 0
-                : Number(data.totals.balance[currency]).toLocaleString()}{' '}
-              {currency}
-            </small>
-          </div>
-          <div className="col-12 col-md-2">
-            <small>
-              <strong>Withdrawn </strong>
-              <span className="text-nowrap">
-                {Number(data.totals.withdrawn[currency]).toLocaleString()}{' '}
+      {Object.keys(data.totals.granted).map(currency => {
+        if (data.grants.find(g => g.currency === currency) === undefined)
+          return null
+
+        return (
+          <div className="row align-items-center" key={currency}>
+            <div className="col-12 col-md-2">
+              <small>
+                <strong>Available </strong>
+                {data.config.isLocked
+                  ? 0
+                  : Number(data.totals.balance[currency]).toLocaleString()}{' '}
                 {currency}
-              </span>
-            </small>
+              </small>
+            </div>
+            <div className="col-12 col-md-2">
+              <small>
+                <strong>Withdrawn </strong>
+                <span className="text-nowrap">
+                  {Number(data.totals.withdrawn[currency]).toLocaleString()}{' '}
+                  {currency}
+                </span>
+              </small>
+            </div>
+            <div className="col-12 col-md-2">
+              <small>
+                <strong>Unvested </strong>
+                <span className="text-nowrap">
+                  {Number(data.totals.unvested[currency]).toLocaleString()}{' '}
+                  {currency}
+                </span>
+              </small>
+            </div>
+            <div className="col-12 col-md-2">
+              <small>
+                <strong>Total purchase </strong>
+                <span className="text-nowrap">
+                  {Number(data.totals.granted[currency]).toLocaleString()}{' '}
+                  {currency}
+                </span>
+              </small>
+            </div>
           </div>
-          <div className="col-12 col-md-2">
-            <small>
-              <strong>Unvested </strong>
-              <span className="text-nowrap">
-                {Number(data.totals.unvested[currency]).toLocaleString()}{' '}
-                {currency}
-              </span>
-            </small>
-          </div>
-          <div className="col-12 col-md-2">
-            <small>
-              <strong>Total purchase </strong>
-              <span className="text-nowrap">
-                {Number(data.totals.granted[currency]).toLocaleString()}{' '}
-                {currency}
-              </span>
-            </small>
-          </div>
-        </div>
-      ))}
+        )
+      })}
       <hr />
       <div className="row">
         <div className="col">

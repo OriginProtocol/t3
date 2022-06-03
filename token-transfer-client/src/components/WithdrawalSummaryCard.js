@@ -20,6 +20,9 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
         </div>
       </div>
       {Object.keys(data.totals.granted).map(currency => {
+        if (data.grants.find(g => g.currency === currency) === undefined)
+          return null
+
         const total = Number(data.totals.vested[currency])
         const withdrawnPercent =
           (Number(data.totals.withdrawn[currency]) / total) * 100
