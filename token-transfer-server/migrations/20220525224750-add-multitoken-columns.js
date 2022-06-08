@@ -3,20 +3,24 @@
 module.exports = {
   up: (queryInterface, Sequelize) => {
     // The transfer table already has a currency column from previous migrations
-    queryInterface.addColumn('Grant', 'currency', {
-      type: Sequelize.STRING,
-      allowNull: false,
-      default: 'OGN',
-    })
-    queryInterface.addColumn('Lockup', 'currency', {
-      type: Sequelize.STRING,
-      allowNull: false,
-      default: 'OGN',
-    })
+    return Promise.all([
+      queryInterface.addColumn('t3_grant', 'currency', {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue: 'OGN',
+      }),
+      queryInterface.addColumn('t3_lockup', 'currency', {
+        type: Sequelize.STRING,
+        allowNull: false,
+        defaultValue: 'OGN',
+      })
+    ])
   },
 
   down: (queryInterface, Sequelize) => {
-    queryInterface.removeColumn('Grant', 'currency')
-    queryInterface.removeColumn('Lockup', 'currency')
+    return Promise.all([
+      queryInterface.removeColumn('t3_grant', 'currency'),
+      queryInterface.removeColumn('t3_lockup', 'currency')
+    ])
   },
 }
