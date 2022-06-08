@@ -41,22 +41,26 @@ const BonusCard = ({ onDisplayBonusModal }) => {
       <div className="row">
         <div className="col-12 col-md-6">
           <h2>Bonus Tokens</h2>
-          <div className="mt-3 mb-2">
-            <div>Earned</div>
-            <strong style={{ fontSize: '24px' }}>
-              {Number(data.totals.allEarnings).toLocaleString()}
-            </strong>{' '}
-            <span className="ml-1 ogn">OGN</span>
-          </div>
-          <div>
-            <div>Locked Up</div>
-            <strong style={{ fontSize: '24px' }}>
-              {Number(
-                data.totals.locked.plus(data.totals.nextVestLocked)
-              ).toLocaleString()}
-            </strong>{' '}
-            <span className="ml-1 ogn">OGN</span>
-          </div>
+          {Object.keys(data.totals.granted).map(currency => {
+            <>
+              <div className="mt-3 mb-2">
+                <div>Earned</div>
+                <strong style={{ fontSize: '24px' }}>
+                  {Number(data.totals.allEarnings[currency]).toLocaleString()}
+                </strong>{' '}
+                <span className="ml-1 ogn">{currency}</span>
+              </div>
+              <div>
+                <div>Locked Up</div>
+                <strong style={{ fontSize: '24px' }}>
+                  {Number(
+                    data.totals.locked[currency].plus(data.totals.nextVestLocked[currency])
+                  ).toLocaleString()}
+                </strong>{' '}
+                <span className="ml-1 ogn">{currency}</span>
+              </div>
+            </>
+          })}
         </div>
         <div className="col-12 col-md-6 mt-4 mt-md-0">
           <div className="row">
@@ -74,25 +78,13 @@ const BonusCard = ({ onDisplayBonusModal }) => {
                   <div className="mb-4 mt-2">
                     <Lock style={{ transform: 'scale(3)' }} />
                   </div>
-                  You don&apos;t have any OGN locked up.
+                  You don&apos;t have any tokens locked up.
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-      {/*
-          <div className="row mt-3">
-            <div className="col text-center">
-              <button
-                className="btn btn-lg btn-primary"
-                onClick={onDisplayBonusModal}
-              >
-                Earn OGN
-              </button>
-            </div>
-          </div>
-        */}
     </BorderedCard>
   )
 }
