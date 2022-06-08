@@ -53,6 +53,14 @@ describe('Execute transfers', () => {
         currency: 'OGN',
         amount: 10000000,
       }),
+      await Grant.create({
+        userId: this.user.id,
+        start: moment().subtract(4, 'years'),
+        end: moment(),
+        cliff: moment().subtract(3, 'years'),
+        currency: 'OGV',
+        amount: 5000000,
+      })
     ]
   })
 
@@ -90,6 +98,27 @@ describe('Execute transfers', () => {
       toAddress: toAddress,
       amount: 1,
       currency: 'OGN',
+    })
+
+    await executeTransfers()
+
+    await transfer.reload()
+
+    expect(transfer.status).to.equal(enums.TransferStatuses.WaitingConfirmation)
+
+    const transferTasks = await TransferTask.findAll()
+    expect(transferTasks[0].start).to.not.equal(null)
+    expect(transferTasks[0].end).to.not.equal(null)
+    expect(transfer.transferTaskId).to.equal(transferTasks[0].id)
+  })
+
+  it('should execute a small transfer immediately for a different currency', async () => {
+    const transfer = await Transfer.create({
+      userId: this.user.id,
+      status: enums.TransferStatuses.Enqueued,
+      toAddress: toAddress,
+      amount: 200,
+      currency: 'OGV',
     })
 
     await executeTransfers()
@@ -210,11 +239,11 @@ describe('Execute transfers', () => {
   })
 
   // TODO
-  it('should record success when checking block confirmation', async () => {})
+  it('should record success when checking block confirmation', async () => { })
 
   // TODO
-  it('should record failure when checking block confirmation', async () => {})
+  it('should record failure when checking block confirmation', async () => { })
 
   // TODO
-  it('should record timeout when checking block confirmation', async () => {})
+  it('should record timeout when checking block confirmation', async () => { })
 })

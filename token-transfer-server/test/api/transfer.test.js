@@ -62,6 +62,16 @@ describe('Transfer HTTP API', () => {
         amount: 1000000,
         interval: 'days',
       }),
+      await Grant.create({
+        // Fully vested grant
+        userId: this.user.id,
+        start: moment().subtract(4, 'years'),
+        end: moment(),
+        cliff: moment().subtract(3, 'years'),
+        currency: 'OGN',
+        amount: 500000,
+        interval: 'days',
+      }),
       // Fully unvested grant
       await Grant.create({
         userId: this.user.id,
@@ -115,9 +125,18 @@ describe('Transfer HTTP API', () => {
       currency: 'OGN',
     })
 
+    await Transfer.create({
+      userId: this.user.id,
+      status: enums.TransferStatuses.Success,
+      fromAddress,
+      toAddress,
+      amount: 100000,
+      currency: 'OGV',
+    })
+
     const response = await request(this.mockApp).get('/api/transfers')
 
-    expect(response.body.length).to.equal(2)
+    expect(response.body.length).to.equal(3)
   })
 
   it('should not add a transfer if unlock date has not passed', async () => {
@@ -210,6 +229,22 @@ describe('Transfer HTTP API', () => {
       .send({
         currency: 'OGN',
         amount: 1000001,
+        address: toAddress,
+        code: totp.gen(this.otpKey),
+      })
+      .expect(422)
+
+    expect(response.text).to.match(/exceeds/)
+
+    expect(
+      (await request(this.mockApp).get('/api/transfers')).body.length
+    ).to.equal(0)
+
+    const response_two = await request(this.mockApp)
+      .post('/api/transfers')
+      .send({
+        currency: 'OGV',
+        amount: 500001,
         address: toAddress,
         code: totp.gen(this.otpKey),
       })
