@@ -59,7 +59,7 @@ async function getBalance(userId, currency) {
   const nextVestLocked = calculateNextVestLocked(user.Lockups)
   logger.debug(
     `User ${user.email} ${currency} in early lockup`,
-    nextVestLocked.toString()
+    nextVestLocked[currency].toString()
   )
 
   // Calculate total available tokens
