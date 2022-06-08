@@ -190,13 +190,13 @@ const createTokenContract = (currency) => {
 
   switch (networkId) {
     case MAINNET_NETWORK_ID:
-      if (!address.mainnet) {
+      if (!addresses.mainnet) {
         throw new Error(`${currency} is not configured for mainnet`)
       }
       contract = new ethers.Contract(addresses.mainnet, ERC20_ABI, provider)
       break
     case RINKEBY_NETWORK_ID:
-      if (!address.rinkeby) {
+      if (!addresses.rinkeby) {
         throw new Error(`${currency} is not configured for rinkeby`)
       }
       contract = new ethers.Contract(addresses.rinkeby, ERC20_ABI, provider)
