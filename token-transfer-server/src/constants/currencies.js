@@ -4,7 +4,7 @@ const currencies = {
     rinkeby: '0xa115e16ef6e217f7a327a57031f75ce0487aadb8',
   },
   OGV: {
-    mainnet: '',
+    mainnet: '0x9c354503C38481a7A7a51629142963F98eCC12D0',
     rinkeby: '',
   },
 }
