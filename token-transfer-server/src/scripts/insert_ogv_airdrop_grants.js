@@ -9,7 +9,7 @@ const db = require('../models')
 const { getBalance } = require('../lib/balance')
 
 Logger.setLogLevel(process.env.LOG_LEVEL || 'INFO')
-const logger = Logger.create('enqueue', { showTimestamp: false })
+const logger = Logger.create('insert_ogv_airdrop_grants', { showTimestamp: false })
 
 const GRANT_START = moment('2022-07-05', 'YYYY-MM-DD')
 const GRANT_END = GRANT_START.add('1', 'days')
@@ -48,16 +48,16 @@ async function run(config) {
             amount: balance,
           })
         } else {
-          console.log(`User ${user.email} already had an OGV grant`)
+          logger.info(`User ${user.email} already had an OGV grant`)
         }
       } else {
-        console.log(`Would insert grant OGV for ${balance.toString()} for ${user.email}`)
+        logger.info(`Would insert grant OGV for ${balance.toString()} for ${user.email}`)
       }
     }
   }
 
-  console.log(`${hasBalanceCounter} users with a balance, ${users.length - hasBalanceCounter} users without a balance`);
-  console.log(`${balanceTotals.toString()} OGN balances total`)
+  logger.info(`${hasBalanceCounter} users with a balance, ${users.length - hasBalanceCounter} users without a balance`);
+  logger.info(`${balanceTotals.toString()} OGN balances total`)
 }
 
 const args = parseArgv()
