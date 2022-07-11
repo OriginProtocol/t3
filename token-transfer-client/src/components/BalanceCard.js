@@ -11,8 +11,6 @@ import DropdownDotsToggle from '@/components/DropdownDotsToggle'
 const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
   const data = useContext(DataContext)
 
-  console.log(data)
-
   const [redirectTo, setRedirectTo] = useState(false)
 
   const doughnutData = currency => {
@@ -41,7 +39,7 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
       <BorderedCard>
         <div className="row">
           {data.config.unlockDate &&
-            moment.utc(data.config.unlockDate).isValid() ? (
+          moment.utc(data.config.unlockDate).isValid() ? (
             <>
               <div className="col-12 col-lg-6 my-4">
                 <h1 className="mb-1">Your tokens are almost here!</h1>
@@ -117,8 +115,8 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
                       {data.config.isLocked
                         ? 0
                         : Number(
-                          data.totals.balance[currency]
-                        ).toLocaleString()}{' '}
+                            data.totals.balance[currency]
+                          ).toLocaleString()}{' '}
                     </div>
                     <span className="ogn">{currency}</span>
                   </div>
