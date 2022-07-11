@@ -34,7 +34,7 @@ function momentizeGrant(grant) {
  * @param {Object} grantObj: plain grant object
  */
 function vestingSchedule(user, grantObj) {
-  return user.employee
+  return user.employee || grantObj.cliff
     ? employeeVestingSchedule(grantObj)
     : investorVestingSchedule(grantObj)
 }
