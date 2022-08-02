@@ -133,7 +133,9 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
                             Earn Bonus Tokens
                           </Dropdown.Item>
                         )}
-                        <Dropdown.Item onClick={onDisplayWithdrawModal}>
+                        <Dropdown.Item
+                          onClick={() => onDisplayWithdrawModal(currency)}
+                        >
                           Withdraw
                         </Dropdown.Item>
                         <Dropdown.Item
@@ -162,7 +164,7 @@ const BalanceCard = ({ onDisplayBonusModal, onDisplayWithdrawModal }) => {
                           )
                         ).toLocaleString()}
                       </div>
-                      <span className="ogn">OGN</span>
+                      <span className="ogn">{currency}</span>
                     </div>
                     <div className="col-1 text-right">
                       <Dropdown drop={'left'} style={{ display: 'inline' }}>

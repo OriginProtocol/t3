@@ -65,7 +65,9 @@ const Dashboard = props => {
         <div className={`${data.config.isLocked ? 'col-12' : 'col'} mb-10`}>
           <BalanceCard
             onDisplayBonusModal={() => setDisplayStakeModal(true)}
-            onDisplayWithdrawModal={() => setDisplayWithdrawModal(true)}
+            onDisplayWithdrawModal={currency =>
+              setDisplayWithdrawModal(currency)
+            }
           />
         </div>
 
