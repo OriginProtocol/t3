@@ -302,6 +302,47 @@ describe('Employee vesting', () => {
       )
     })
   })
+
+  describe('vesting with no cliff', () => {
+    let grant
+
+    beforeEach(async () => {
+      await setupDatabase()
+      this.user = await User.create({
+        email: 'user+employee@originprotocol.com',
+        otpKey: '123',
+        otpVerified: true,
+        employee: true,
+      })
+      grant = new Grant({
+        userId: this.user.id,
+        start: '2022-05-05 00:00:00',
+        end: '2024-05-05 00:00:00',
+        cliff: '2022-05-05 00:00:00',
+        amount: 24000,
+      })
+      await grant.save()
+    })
+
+    it('should vest even when there is no cliff', async () => {
+      const clock = sinon.useFakeTimers(moment.utc('2023-05-05 00:00:00'))
+      const schedule = vestingSchedule(
+        this.user,
+        momentizeGrant(grant.get({ plain: true }))
+      )
+
+      // There should be exactly 24 vesting events 
+      // and no cliff
+      expect(schedule.length).to.equal(24)
+      
+      // All vesting events should vest the correct proportion
+      schedule.every((e) =>
+        expect(e.amount).to.be.bignumber.equal(BigNumber('1000'))
+      )
+
+      clock.restore()
+    })
+  })
 })
 
 describe('Investor vesting', () => {

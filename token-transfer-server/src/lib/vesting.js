@@ -67,7 +67,13 @@ function employeeVestingSchedule(grantObj) {
   )
 
   // Complete vesting array
-  const vestingEvents = [cliffVestAmount, ...remainingVestingAmounts]
+  const vestingEvents = []
+
+  if (cliffVestingCount > 0) {
+    vestingEvents.push(cliffVestAmount)
+  }
+
+  vestingEvents.push(...remainingVestingAmounts)
 
   // Add an rounding errors to the last vesting event
   const roundingError = BigNumber(grant.amount).minus(
