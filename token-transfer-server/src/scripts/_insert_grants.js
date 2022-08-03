@@ -35,6 +35,7 @@ async function run() {
     // Calculate the end date for the new grant (last vest of all unvested)
     const grantStartDate = moment.min(...filteredVesting.map(v => v.date))
     let grantEndDate = moment.max(...filteredVesting.map(v => v.date))
+    const grantCliffDate = moment.max(grantStartDate, moment(grant.cliff))
 
     if (grantStartDate.isAfter(SNAPSHOT_DATE)) {
       // Start is inclusive and end is exclusive
@@ -42,11 +43,12 @@ async function run() {
       // it cuts short 1 month in overall calculations.
       grantEndDate = grantEndDate.add(1, 'month')
     }
+    
 
     const newGrant = {
       userId: grant.User.id,
       start: grantStartDate,
-      cliff: grantStartDate,
+      cliff: grantCliffDate,
       end: grantEndDate,
       amount: totalGrantAmount.toString(),
       currency: 'OGV'
