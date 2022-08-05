@@ -32,10 +32,16 @@ async function run() {
       new BigNumber(0)
     )
 
+    const ognCliff = moment(grant.cliff)
+
     // Calculate the end date for the new grant (last vest of all unvested)
-    const grantStartDate = moment.min(...filteredVesting.map(v => v.date))
+    let grantStartDate = moment.min(...filteredVesting.map(v => v.date))
     let grantEndDate = moment.max(...filteredVesting.map(v => v.date))
-    const grantCliffDate = moment.max(grantStartDate, moment(grant.cliff))
+    const grantCliffDate = moment.max(grantStartDate, ognCliff)
+
+    if (ognCliff.isAfter(SNAPSHOT_DATE)) {
+      grantStartDate = moment(grant.start)
+    }
 
     if (grantStartDate.isAfter(SNAPSHOT_DATE)) {
       // Start is inclusive and end is exclusive

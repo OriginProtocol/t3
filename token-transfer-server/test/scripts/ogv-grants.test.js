@@ -1,5 +1,6 @@
 const BigNumber = require('bignumber.js')
 const chai = require('chai')
+const { vestingSchedule } = require('../../src/lib/vesting')
 chai.use(require('chai-moment'))
 chai.use(require('chai-bignumber')(BigNumber))
 const expect = chai.expect
@@ -105,7 +106,7 @@ describe('Matching OGV Grants', () => {
     })
     expect(user3OGVGrants.length).to.equal(1)
     expect(user3OGVGrants[0].start.toISOString()).to.equal(
-      new Date('2023-07-13').toISOString()
+      new Date('2022-07-13').toISOString()
     )
     expect(user3OGVGrants[0].cliff.toISOString()).to.equal(
       new Date('2023-07-13').toISOString()
@@ -172,7 +173,7 @@ describe('Matching OGV Grants', () => {
     })
     expect(user2OGVGrants.length).to.equal(1)
     expect(user2OGVGrants[0].start.toISOString()).to.equal(
-      new Date('2023-07-12').toISOString()
+      new Date('2022-07-12').toISOString()
     )
     expect(user2OGVGrants[0].cliff.toISOString()).to.equal(
       new Date('2023-07-12').toISOString()
@@ -181,5 +182,50 @@ describe('Matching OGV Grants', () => {
       new Date('2026-08-12').toISOString()
     )
     expect(user2OGVGrants[0].amount).to.equal(10000000)
+  })
+
+  it('should handle cliffs after snapshot correctly', async () => {
+    // User 1 has some vests before the snapshot date
+    const user1 = await createUser()
+    const ognGrant = await Grant.create({
+      userId: user1.id,
+      start: new Date('2021-12-10'),
+      end: new Date('2025-12-10'),
+      cliff: new Date('2022-12-10'),
+      amount: 10000000,
+      interval: 'days',
+      currency: 'OGN'
+    })
+
+    // Run the script
+    await grantMatchingOGV()
+
+    // Make sure user1 has OGV grants for only unvested OGN
+    const user1OGVGrants = await Grant.findAll({
+      where: {
+        userId: user1.id,
+        currency: 'OGV'
+      }
+    })
+    expect(user1OGVGrants.length).to.equal(1)
+    expect(user1OGVGrants[0].start.toISOString()).to.equal(
+      new Date('2021-12-10').toISOString()
+    )
+    expect(user1OGVGrants[0].cliff.toISOString()).to.equal(
+      new Date('2022-12-10').toISOString()
+    )
+    expect(user1OGVGrants[0].end.toISOString()).to.equal(
+      new Date('2025-12-10').toISOString()
+    )
+    expect(user1OGVGrants[0].amount).to.equal(10000000)
+
+    const [cliffVest, ...vests] = vestingSchedule(user1, user1OGVGrants[0].get({ plain: true }))
+
+    expect(cliffVest.amount.toString()).to.equal('2500000')
+    for (const vest of vests.slice(0, -1)) {
+      expect(vest.amount.toString()).to.equal('208333')
+    }
+
+    expect(vests[vests.length - 1].amount.toString()).to.equal('208345')
   })
 })
