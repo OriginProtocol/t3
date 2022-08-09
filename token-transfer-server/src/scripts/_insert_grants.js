@@ -10,11 +10,13 @@ const { vestingSchedule } = require('../lib/vesting')
 const SNAPSHOT_DATE = moment('2022-07-12')
 
 async function run() {
-  // Look for all OGN grants that haven't been cancelled.
+  // Look for all OGN grants that haven't been cancelled
+  // and that have a start date prior to the snapshot
   const grants = await db.Grant.findAll({
     where: {
       currency: 'OGN',
-      cancelled: null
+      cancelled: null,
+      start: { [db.Sequelize.Op.lt]: SNAPSHOT_DATE }
     },
     include: [
       {
@@ -23,6 +25,7 @@ async function run() {
     ]
   })
 
+  console.log(['email', 'start', 'cliff', 'end', 'amount', 'currency', 'grantType', 'ogn_grant_id'].join(','))
   for (const grant of grants) {
     const schedule = vestingSchedule(grant.User, grant.get({ plain: true }))
     // Filter for all vests after snapshot date. Existing balances already airdropped.
@@ -66,8 +69,9 @@ async function run() {
       grantType: `OGV grant for unvested OGN from grant: ${grant.grantType || 'ID ' + grant.id}`
     }
 
-    console.log('Inserting grant for user ', grant.User.email, JSON.stringify(newGrant, null, 2))
-    await db.Grant.create(newGrant)
+    const row = await db.Grant.create(newGrant)
+    console.log([grant.User.email, row.start, row.cliff, row.end, row.amount, row.currency, row.grantType, grant.id].join(','))
+
   }
 }
 
