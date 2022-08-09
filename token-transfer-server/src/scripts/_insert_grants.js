@@ -10,7 +10,12 @@ const { vestingSchedule } = require('../lib/vesting')
 const SNAPSHOT_DATE = moment('2022-07-12')
 
 async function run() {
+  // Look for all OGN grants that haven't been cancelled.
   const grants = await db.Grant.findAll({
+    where: {
+      currency: 'OGN',
+      cancelled: null
+    },
     include: [
       {
         model: db.User
@@ -26,6 +31,7 @@ async function run() {
     )
     // No vests remaining on grant, no matching grant needed
     if (filteredVesting.length === 0) continue
+
     // Calculate the total amount for the new grant
     const totalGrantAmount = filteredVesting.reduce(
       (total, vest) => total.plus(vest.amount),
@@ -49,7 +55,6 @@ async function run() {
       // it cuts short 1 month in overall calculations.
       grantEndDate = grantEndDate.add(1, 'month')
     }
-    
 
     const newGrant = {
       userId: grant.User.id,
@@ -57,9 +62,11 @@ async function run() {
       cliff: grantCliffDate,
       end: grantEndDate,
       amount: totalGrantAmount.toString(),
-      currency: 'OGV'
+      currency: 'OGV',
+      grantType: `OGV grant for unvested OGN from grant: ${grant.grantType || 'ID ' + grant.id}`
     }
 
+    console.log('Inserting grant for user ', grant.User.email, JSON.stringify(newGrant, null, 2))
     await db.Grant.create(newGrant)
   }
 }
