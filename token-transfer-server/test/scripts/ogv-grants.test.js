@@ -54,7 +54,8 @@ describe('Matching OGV Grants', () => {
       currency: 'OGN'
     })
 
-    // User 3 has all vests after the snapshot date
+    // User 3 has all vests after the snapshot date.
+    // They joined the company after the snapshot and won't get a matching OGV grant.
     const user3 = await createUser()
     await Grant.create({
       userId: user3.id,
@@ -97,24 +98,14 @@ describe('Matching OGV Grants', () => {
     )
     expect(user2OGVGrants[0].amount).to.equal(4583338)
 
-    // Make sure user3 has OGV grants for all his unvested OGN
+    // Make sure user3 has OGV no grant.
     const user3OGVGrants = await Grant.findAll({
       where: {
         userId: user3.id,
         currency: 'OGV'
       }
     })
-    expect(user3OGVGrants.length).to.equal(1)
-    expect(user3OGVGrants[0].start.toISOString()).to.equal(
-      new Date('2022-07-13').toISOString()
-    )
-    expect(user3OGVGrants[0].cliff.toISOString()).to.equal(
-      new Date('2023-07-13').toISOString()
-    )
-    expect(user3OGVGrants[0].end.toISOString()).to.equal(
-      new Date('2026-08-13').toISOString()
-    )
-    expect(user3OGVGrants[0].amount).to.equal(10000000)
+    expect(user3OGVGrants.length).to.equal(0)
   })
 
   it('should grant OGV when start is same as snapshot date', async () => {
@@ -154,15 +145,15 @@ describe('Matching OGV Grants', () => {
     })
     expect(user1OGVGrants.length).to.equal(1)
     expect(user1OGVGrants[0].start.toISOString()).to.equal(
-      new Date('2022-07-12').toISOString()
+      new Date('2022-08-12').toISOString()
     )
     expect(user1OGVGrants[0].cliff.toISOString()).to.equal(
-      new Date('2022-07-12').toISOString()
+      new Date('2022-08-12').toISOString()
     )
     expect(user1OGVGrants[0].end.toISOString()).to.equal(
       new Date('2024-08-12').toISOString()
     )
-    expect(user1OGVGrants[0].amount).to.equal(5208337)
+    expect(user1OGVGrants[0].amount).to.equal(5000004)
 
     // Make sure user2 has OGV grants for all his unvested OGN
     const user2OGVGrants = await Grant.findAll({
@@ -179,7 +170,7 @@ describe('Matching OGV Grants', () => {
       new Date('2023-07-12').toISOString()
     )
     expect(user2OGVGrants[0].end.toISOString()).to.equal(
-      new Date('2026-08-12').toISOString()
+      new Date('2026-07-12').toISOString()
     )
     expect(user2OGVGrants[0].amount).to.equal(10000000)
   })

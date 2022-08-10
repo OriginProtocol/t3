@@ -9,6 +9,8 @@ const { vestingSchedule } = require('../lib/vesting')
 
 const SNAPSHOT_DATE = moment('2022-07-12')
 
+const csv = process.env.CSV
+
 async function run() {
   // Look for all OGN grants that haven't been cancelled
   // and that have a start date prior to the snapshot
@@ -25,7 +27,9 @@ async function run() {
     ]
   })
 
-  console.log(['email', 'start', 'cliff', 'end', 'amount', 'currency', 'grantType', 'ogn_grant_id'].join(','))
+  if (csv) {
+    console.log(['email', 'start', 'cliff', 'end', 'amount', 'currency', 'grantType', 'ogn_grant_id'].join(','))
+  }
   for (const grant of grants) {
     const schedule = vestingSchedule(grant.User, grant.get({ plain: true }))
     // Filter for all vests after snapshot date. Existing balances already airdropped.
@@ -49,6 +53,9 @@ async function run() {
     const grantCliffDate = moment.max(grantStartDate, ognCliff)
 
     if (ognCliff.isAfter(SNAPSHOT_DATE)) {
+      // If the user hadn't reached their cliff at snapshot date, they hadn't vested anything yet.
+      // Set the OGV grant start date to the OGN grant start date, so that they'll vest the
+      // same amount of OGV as OGN when reaching the common cliff.
       grantStartDate = moment(grant.start)
     }
 
@@ -70,8 +77,18 @@ async function run() {
     }
 
     const row = await db.Grant.create(newGrant)
-    console.log([grant.User.email, row.start, row.cliff, row.end, row.amount, row.currency, row.grantType, grant.id].join(','))
-
+    if (csv) {
+      console.log([
+        grant.User.email,
+        moment(row.start).format('YYYY-MM-DD'),
+        moment(row.cliff).format('YYYY-MM-DD'),
+        moment(row.end).format('YYYY-MM-DD'),
+        row.amount,
+        row.currency,
+        row.grantType,
+        grant.id
+      ].join(','))
+    }
   }
 }
 
