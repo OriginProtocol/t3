@@ -20,15 +20,17 @@ const VestingHistory = props => {
   })
 
   const tableRows = []
+  let key = 0
   for (const date of Object.keys(schedule).sort()) {
     const momentDate = moment(date)
     for (const currency of Object.keys(schedule[date])) {
       tableRows.push(
-        <tr key={date}>
+        <tr key={key}>
           <td className="pl-0" width="10px">
             <div
-              className={`status-circle ${momentDate < moment.now() ? `bg-green` : ''
-                }`}
+              className={`status-circle ${
+                momentDate < moment.now() ? `bg-green` : ''
+              }`}
             ></div>
           </td>
           <td className="text-nowrap" width="130px">
@@ -42,6 +44,7 @@ const VestingHistory = props => {
           <td className="text-right">{momentDate.format('L')}</td>
         </tr>
       )
+      key++
     }
   }
 
