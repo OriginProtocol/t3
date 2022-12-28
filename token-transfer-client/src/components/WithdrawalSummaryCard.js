@@ -35,7 +35,11 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
               <div className="col text-muted">Vested To Date</div>
               <div className="col text-right">
                 <strong>
-                  {Number(data.totals.vested[currency]).toLocaleString()}{' '}
+                  {Number(
+                    data.totals.vested[currency].plus(
+                      data.totals.unlockedEarnings[currency]
+                    )
+                  ).toLocaleString()}{' '}
                 </strong>
                 <span className="ogn">{currency}</span>
               </div>
@@ -59,9 +63,9 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
               <div className="col text-right">
                 <strong>
                   {Number(
-                    data.totals.vested[currency].minus(
-                      data.totals.withdrawn[currency]
-                    )
+                    data.totals.vested[currency]
+                      .plus(data.totals.unlockedEarnings[currency])
+                      .minus(data.totals.withdrawn[currency])
                   ).toLocaleString()}{' '}
                 </strong>
                 <span className="ogn">{currency}</span>
@@ -83,8 +87,9 @@ const WithdrawalSummaryCard = ({ onDisplayWithdrawModal }) => {
               <div className="row mt-5 mb-2">
                 <div className="col text-center">
                   <button
-                    className={`btn btn-lg btn-outline-${theme === 'dark' ? 'light' : 'primary'
-                      }`}
+                    className={`btn btn-lg btn-outline-${
+                      theme === 'dark' ? 'light' : 'primary'
+                    }`}
                     onClick={() => onDisplayWithdrawModal(currency)}
                   >
                     Withdraw {currency}

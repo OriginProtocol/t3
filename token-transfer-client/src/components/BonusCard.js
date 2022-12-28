@@ -42,7 +42,7 @@ const BonusCard = ({ onDisplayBonusModal }) => {
         <div className="col-12 col-md-6">
           <h2>Bonus Tokens</h2>
           {Object.keys(data.totals.granted).map(currency => {
-            <>
+            ;<>
               <div className="mt-3 mb-2">
                 <div>Earned</div>
                 <strong style={{ fontSize: '24px' }}>
@@ -54,7 +54,9 @@ const BonusCard = ({ onDisplayBonusModal }) => {
                 <div>Locked Up</div>
                 <strong style={{ fontSize: '24px' }}>
                   {Number(
-                    data.totals.locked[currency].plus(data.totals.nextVestLocked[currency])
+                    data.totals.locked[currency].plus(
+                      data.totals.nextVestLocked[currency]
+                    )
                   ).toLocaleString()}
                 </strong>{' '}
                 <span className="ml-1 ogn">{currency}</span>

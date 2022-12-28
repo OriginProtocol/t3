@@ -377,14 +377,16 @@ class WithdrawModal extends Component {
         <form onSubmit={this.handleFormSubmit}>
           <div className="row">
             <div
-              className={`col-12${this.context.config.otcRequestEnabled ? ' col-sm-6' : ''
-                }`}
+              className={`col-12${
+                this.context.config.otcRequestEnabled ? ' col-sm-6' : ''
+              }`}
             >
               <div className="form-group">
                 <label htmlFor="amount">Amount of Tokens</label>
                 <div
-                  className={`input-group ${this.state.amountError ? 'is-invalid' : ''
-                    }`}
+                  className={`input-group ${
+                    this.state.amountError ? 'is-invalid' : ''
+                  }`}
                 >
                   <input {...input('amount')} type="number" />
                   <div className="input-group-append">
@@ -400,7 +402,7 @@ class WithdrawModal extends Component {
                 </div>
               </div>
               {this.context.accounts.length > 0 &&
-                !this.state.modalAddAccount ? (
+              !this.state.modalAddAccount ? (
                 <>
                   <div className="form-group">
                     <label htmlFor="address">Destination Account</label>
