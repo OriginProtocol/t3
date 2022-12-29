@@ -134,11 +134,11 @@ const WithdrawalHistory = ({ history }) => {
                           enums.TransferStatuses.WaitingConfirmation,
                           enums.TransferStatuses.Processing
                         ].includes(transfer.status) && (
-                            <>
-                              <div className="status-circle bg-orange mr-2"></div>
-                              Processing
-                            </>
-                          )}
+                          <>
+                            <div className="status-circle bg-orange mr-2"></div>
+                            Processing
+                          </>
+                        )}
                         {transfer.status === enums.TransferStatuses.Paused && (
                           <>
                             <div className="status-circle bg-red mr-2"></div>
@@ -161,11 +161,11 @@ const WithdrawalHistory = ({ history }) => {
                           enums.TransferStatuses.Expired,
                           enums.TransferStatuses.Cancelled
                         ].includes(transfer.status) && (
-                            <>
-                              <div className="status-circle bg-red mr-2"></div>
-                              {transfer.status}
-                            </>
-                          )}
+                          <>
+                            <div className="status-circle bg-red mr-2"></div>
+                            {transfer.status}
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))

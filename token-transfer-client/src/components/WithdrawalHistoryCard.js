@@ -18,10 +18,10 @@ const WithdrawalHistoryCard = () => {
               {data.config.isLocked
                 ? 0
                 : Number(
-                  data.totals.vested[currency].minus(
-                    data.totals.withdrawn[currency]
-                  )
-                ).toLocaleString()}
+                    data.totals.vested[currency].minus(
+                      data.totals.withdrawn[currency]
+                    )
+                  ).toLocaleString()}
             </strong>{' '}
             <span
               className="ogn"
