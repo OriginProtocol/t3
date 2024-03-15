@@ -92,7 +92,8 @@ function employeeVestingSchedule(grantObj) {
       grantId: grantObj.id,
       amount: currentVestingEvent,
       date: vestingDate.clone(),
-      vested: hasVested(vestingDate, grant)
+      vested: hasVested(vestingDate, grant),
+      cancelled: isCancelled(vestingDate, grant),
     }
   })
   return events
@@ -135,7 +136,8 @@ function investorVestingSchedule(grantObj) {
     grantId: grantObj.id,
     amount: initialVestAmount,
     date: grant.start.clone(),
-    vested: hasVested(grant.start, grantObj)
+    vested: hasVested(grant.start, grantObj),
+    cancelled: isCancelled(grant.start, grant)
   })
 
   const vestingDate = grant.start.clone()
@@ -152,7 +154,8 @@ function investorVestingSchedule(grantObj) {
       grantId: grantObj.id,
       amount: i === 7 ? adjustedFinalVest : quarterlyVestAmount,
       date: vestingDate.clone(),
-      vested: hasVested(vestingDate, grant)
+      vested: hasVested(vestingDate, grant),
+      cancelled: isCancelled(vestingDate, grant)
     })
   }
 
@@ -164,6 +167,10 @@ function hasVested(vestingDate, grant) {
   return (
     vestingDate <= now && (!grant.cancelled || grant.cancelled >= vestingDate)
   )
+}
+
+function isCancelled(vestingDate, grant) {
+  return (grant.cancelled && grant.cancelled < vestingDate)
 }
 
 /** Returns the number of tokens vested by a grant.
