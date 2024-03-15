@@ -11,6 +11,9 @@ const VestingHistory = props => {
   const schedule = {}
   data.grants.forEach(grant => {
     vestingSchedule(props.user, grant).forEach(vest => {
+      // Do not include the vesting event if it has been cancelled.
+      if (vest.cancelled) return
+
       const dateKey = vest.date.format()
       if (schedule[dateKey] === undefined) schedule[dateKey] = {}
       schedule[dateKey][grant.currency] = schedule[dateKey][grant.currency]

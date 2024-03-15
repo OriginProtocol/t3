@@ -113,9 +113,11 @@ const VestingBars = ({ user }) => {
               </div>
               {currencyGrants.map(grant => {
                 // Calculate the percentage of the grant that is complete with a
-                // upper bound of 100
+                // upper bound of 100. If the grant is cancelled, the completion stops once
+                // the current time is past the concellation date.
+                const tick = grant.cancelled && grant.cancelled < now ? grant.cancelled : now
                 const complete = Math.min(
-                  ((now - grant.start) / (grant.end - grant.start)) * 100,
+                  ((tick - grant.start) / (grant.end - grant.start)) * 100,
                   100
                 )
                 // Calculate the width of the grant relative to the width of the
@@ -216,7 +218,7 @@ const VestingBars = ({ user }) => {
                 <div className="status-circle mr-2"></div>
                 <span className=" text-muted">
                   {Number(data.totals.unvested[currency]).toLocaleString()}{' '}
-                  {currency} unvested
+                  {currency} unvested or cancelled
                 </span>
               </div>
             </div>
