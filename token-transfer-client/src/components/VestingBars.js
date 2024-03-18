@@ -115,9 +115,9 @@ const VestingBars = ({ user }) => {
                 // Calculate the percentage of the grant that is complete with a
                 // upper bound of 100. If the grant is cancelled, the completion stops once
                 // the current time is past the concellation date.
-                const tick = grant.cancelled && grant.cancelled < now ? grant.cancelled : now
+                const t = grant.cancelled && grant.cancelled < now ? grant.cancelled : now
                 const complete = Math.min(
-                  ((tick - grant.start) / (grant.end - grant.start)) * 100,
+                  ((t - grant.start) / (grant.end - grant.start)) * 100,
                   100
                 )
                 // Calculate the width of the grant relative to the width of the
