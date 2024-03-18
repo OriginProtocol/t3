@@ -55,9 +55,9 @@ describe('Transfer HTTP API', () => {
       await Grant.create({
         // Fully vested grant
         userId: this.user.id,
-        start: moment().subtract(4, 'years'),
-        end: moment(),
-        cliff: moment().subtract(3, 'years'),
+        start: moment.utc().subtract(4, 'years'),
+        end: moment.utc(),
+        cliff: moment.utc().subtract(3, 'years'),
         currency: 'OGN',
         amount: 1000000,
         interval: 'days',
@@ -65,19 +65,19 @@ describe('Transfer HTTP API', () => {
       await Grant.create({
         // Fully vested grant
         userId: this.user.id,
-        start: moment().subtract(4, 'years'),
-        end: moment(),
-        cliff: moment().subtract(3, 'years'),
-        currency: 'OGN',
+        start: moment.utc().subtract(4, 'years'),
+        end: moment.utc(),
+        cliff: moment.utc().subtract(3, 'years'),
+        currency: 'OGV',
         amount: 500000,
         interval: 'days',
       }),
       // Fully unvested grant
       await Grant.create({
         userId: this.user.id,
-        start: moment().add(10, 'years'),
-        end: moment().add(14, 'years'),
-        cliff: moment().add(11, 'years'),
+        start: moment.utc().add(10, 'years'),
+        end: moment.utc().add(14, 'years'),
+        cliff: moment.utc().add(11, 'years'),
         currency: 'OGN',
         amount: 10000000,
         interval: 'days',
@@ -85,9 +85,9 @@ describe('Transfer HTTP API', () => {
       // Grant for second user
       await Grant.create({
         userId: this.user2.id,
-        start: moment().subtract(6, 'months'),
-        end: moment().add(6, 'months').add(3, 'years'),
-        cliff: moment().add(6, 'months'),
+        start: moment.utc().subtract(6, 'months'),
+        end: moment.utc().add(6, 'months').add(3, 'years'),
+        cliff: moment.utc().add(6, 'months'),
         currency: 'OGN',
         amount: 20000,
         interval: 'days',
@@ -140,7 +140,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if unlock date has not passed', async () => {
-    const unlockFake = sinon.fake.returns(moment().add(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().add(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     const response = await request(this.mockApp)
@@ -176,7 +176,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should add a transfer if lockup date has passed', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     const sendStub = sinon.stub(sendgridMail, 'send')
@@ -200,7 +200,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer before lockup date passed', async () => {
-    const unlockFake = sinon.fake.returns(moment().add(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().add(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     const response = await request(this.mockApp)
@@ -221,7 +221,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if not enough tokens (vested)', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     const response = await request(this.mockApp)
@@ -258,7 +258,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if not enough tokens (vested minus enqueued)', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     await Transfer.create({
@@ -287,7 +287,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if not enough tokens (vested minus paused)', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     await Transfer.create({
@@ -316,7 +316,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if not enough tokens (vested minus waiting)', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     await Transfer.create({
@@ -345,7 +345,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if not enough tokens (vested minus success)', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     await Transfer.create({
@@ -374,7 +374,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if not enough tokens (multiple states)', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
     const promises = [
@@ -553,7 +553,7 @@ describe('Transfer HTTP API', () => {
   })
 
   it('should not add a transfer if unconfirmed lockups greater than balance', async () => {
-    const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
+    const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
