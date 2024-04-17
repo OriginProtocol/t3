@@ -52,18 +52,18 @@ describe('Lockup HTTP API', () => {
       // Fully vested grant
       await Grant.create({
         userId: this.user.id,
-        start: moment().subtract(4, 'years'),
-        end: moment(),
-        cliff: moment().subtract(3, 'years'),
+        start: moment.utc().subtract(4, 'years'),
+        end: moment.utc(),
+        cliff: moment.utc().subtract(3, 'years'),
         currency: 'OGN',
         amount: 100000,
       }),
       // Vesting in the future
       await Grant.create({
         userId: this.user.id,
-        start: moment().add(1, 'years'),
-        end: moment().add(4, 'years'),
-        cliff: moment().add(1, 'years'),
+        start: moment.utc().add(1, 'years'),
+        end: moment.utc().add(4, 'years'),
+        cliff: moment.utc().add(1, 'years'),
         currency: 'OGN',
         amount: 10000000,
       }),

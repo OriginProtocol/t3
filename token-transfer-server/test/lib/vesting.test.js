@@ -254,7 +254,7 @@ describe('Employee vesting', () => {
     })
 
     it('should vest the 1/48 rounded to floor each month', () => {
-      const clock = sinon.useFakeTimers(moment.utc(grant.end))
+      const clock = sinon.useFakeTimers(moment.utc(grant.end).valueOf())
       const schedule = vestingSchedule(
         this.user,
         momentizeGrant(grant.get({ plain: true }))
@@ -325,7 +325,7 @@ describe('Employee vesting', () => {
     })
 
     it('should vest even when there is no cliff', async () => {
-      const clock = sinon.useFakeTimers(moment.utc('2023-05-05 00:00:00'))
+      const clock = sinon.useFakeTimers(moment.utc('2023-05-05 00:00:00').valueOf())
       const schedule = vestingSchedule(
         this.user,
         momentizeGrant(grant.get({ plain: true }))
@@ -343,6 +343,79 @@ describe('Employee vesting', () => {
       clock.restore()
     })
   })
+
+  describe('Cancelled grant', () => {
+    let grant1, grant2
+
+    beforeEach(async () => {
+      await setupDatabase()
+      this.user = await User.create({
+        email: 'user+employee@originprotocol.com',
+        otpKey: '123',
+        otpVerified: true,
+        employee: true,
+      })
+      // 4 years vesting, 1 year cliff, cancelled after 2 years in.
+      grant1 = new Grant({
+        userId: this.user.id,
+        start: '2022-05-05 00:00:00',
+        end: '2026-05-05 00:00:00',
+        cliff: '2023-05-05 00:00:00',
+        cancelled: '2024-05-05 00:00:00',
+        amount: 48000,
+      })
+      await grant1.save()
+
+      //  years vesting, 1 year cliff, cancelled before the cliff.
+      grant2 = new Grant({
+        userId: this.user.id,
+        start: '2022-05-05 00:00:00',
+        end: '2026-05-05 00:00:00',
+        cliff: '2023-05-05 00:00:00',
+        cancelled: '2023-05-04 00:00:00',
+        amount: 48000,
+      })
+      await grant2.save()
+    })
+
+    it('Cancelled grant after cliff', async () => {
+      const clock = sinon.useFakeTimers(moment.utc('2027-01-01 00:00:00').valueOf())
+      const schedule = vestingSchedule(
+        this.user,
+        momentizeGrant(grant1.get({ plain: true }))
+      )
+
+      // There should be exactly 37 vesting events (1 cliff vest and 36 monthly vests).
+      // 24 of them should be cancelled
+      // 13 of them should be vested (1 cliff vest event + 12 monthly vests)
+      expect(schedule.length).to.equal(37)
+      const cancelledCount = schedule.reduce((count, item) => item.cancelled ? ++count : count, 0);
+      expect(cancelledCount).to.equal(24)
+      const vestedCount = schedule.reduce((count, item) => item.vested ? ++count : count, 0);
+      expect(vestedCount).to.equal(13)
+      clock.restore()
+    })
+
+    it('Cancelled grant before cliff', async () => {
+      const clock = sinon.useFakeTimers(moment.utc('2027-01-01 00:00:00').valueOf())
+      const schedule = vestingSchedule(
+        this.user,
+        momentizeGrant(grant2.get({ plain: true }))
+      )
+
+      // There should be exactly 37 vesting events (1 cliff vest and 36 monthly vests).
+      // All of them should be cancelled and unvested.
+      expect(schedule.length).to.equal(37)
+      const cancelledCount = schedule.reduce((count, item) => item.cancelled ? ++count : count, 0);
+      expect(cancelledCount).to.equal(37)
+
+      schedule.every((e) => expect(e.vested).to.be.false)
+      schedule.every((e) => expect(e.cancelled).to.be.true)
+
+      clock.restore()
+    })
+  })
+
 })
 
 describe('Investor vesting', () => {
