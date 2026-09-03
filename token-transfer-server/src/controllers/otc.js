@@ -3,7 +3,7 @@ const router = express.Router()
 const { check, validationResult } = require('express-validator')
 
 const { discordWebhookUrl, otcPartnerEmails } = require('../config')
-const { sendEmail } = require('../lib/email')
+const mail = require('../lib/email')
 const { postToWebhook } = require('../lib/webhook')
 const { asyncMiddleware, getOtcRequestEnabled } = require('../utils')
 const { ensureLoggedIn } = require('../lib/login')
@@ -63,7 +63,7 @@ router.post(
 
     for (const email of otcPartnerEmails) {
       logger.info('Sending OTC email to', email)
-      await sendEmail(email, 'otc', vars)
+      await mail.sendEmail(email, 'otc', vars)
     }
 
     return res.status(204).send('')

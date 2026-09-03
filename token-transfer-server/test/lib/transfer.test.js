@@ -6,7 +6,6 @@ chai.use(require('chai-moment'))
 const expect = chai.expect
 const moment = require('moment')
 const sinon = require('sinon')
-const sendgridMail = require('@sendgrid/mail')
 
 const enums = require('../../src/enums')
 const {
@@ -16,6 +15,7 @@ const {
 } = require('../../src/lib/transfer')
 const { Grant, Transfer, User, sequelize } = require('../../src/models')
 const { transferConfirmationTimeout } = require('../../src/config')
+const email = require('../../src/lib/email')
 
 const toAddress = '0xf17f52151ebef6c7334fad080c5704d77216b732'
 
@@ -43,7 +43,7 @@ describe('Token transfer library', () => {
   })
 
   it('should add a transfer', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const amount = 1000
     const transfer = await addTransfer(this.user.id, toAddress, amount, 'OGN')
@@ -64,7 +64,7 @@ describe('Token transfer library', () => {
   })
 
   it('should add a transfer where required amount spans multiple grants', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -99,7 +99,7 @@ describe('Token transfer library', () => {
   })
 
   it('should add ignoring failed transfer amounts', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -120,7 +120,7 @@ describe('Token transfer library', () => {
   })
 
   it('should add ignoring cancelled transfer amounts', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -141,7 +141,7 @@ describe('Token transfer library', () => {
   })
 
   it('should add ignoring expired transfer amounts', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -162,7 +162,7 @@ describe('Token transfer library', () => {
   })
 
   it('should add ignoring transfers waiting for email confirmation that have expired tokens', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -310,7 +310,7 @@ describe('Token transfer library', () => {
 
   it('should execute a transfer', async () => {
     // Stub SendGrid so it doesn't return an error
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     // Enqueue and execute a transfer
     const amount = 1000

@@ -40,16 +40,21 @@ const port = process.env.PORT || 5000
 const clientUrl =
   process.env.CLIENT_URL || 'https://investor.originprotocol.com/#'
 
-// Sendgrid configuration
 const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL
 if (!sendgridFromEmail) {
   logger.error('SENDGRID_FROM_EMAIL must be set through EnvKey or manually')
   process.exit(1)
 }
 
-const sendgridApiKey = process.env.SENDGRID_API_KEY
-if (!sendgridFromEmail) {
-  logger.error('SENDGRID_API_KEY must be set through EnvKey or manually')
+const cloudflareAccount = process.env.CLOUDFLARE_ACCOUNT
+if (!cloudflareAccount) {
+  logger.error('CLOUDFLARE_ACCOUNT must be set through EnvKey or manually')
+  process.exit(1)
+}
+
+const cloudflareBearerToken = process.env.CLOUDFLARE_BEARER_TOKEN
+if (!cloudflareBearerToken) {
+  logger.error('CLOUDFLARE_BEARER_TOKEN must be set through EnvKey or manually')
   process.exit(1)
 }
 
@@ -231,7 +236,8 @@ module.exports = {
   port,
   clientUrl,
   sendgridFromEmail,
-  sendgridApiKey,
+  cloudflareAccount,
+  cloudflareBearerToken,
   sessionSecret,
   unlockDate,
   largeTransferThreshold,

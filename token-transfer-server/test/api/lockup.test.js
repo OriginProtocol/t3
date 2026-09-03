@@ -7,7 +7,6 @@ const sinon = require('sinon')
 const totp = require('notp').totp
 const base32 = require('thirty-two')
 const crypto = require('crypto')
-const sendgridMail = require('@sendgrid/mail')
 const jwt = require('jsonwebtoken')
 
 process.env.ENCRYPTION_SECRET = 'test'
@@ -25,6 +24,7 @@ const {
   lockupConfirmationTimeout,
 } = require('../../src/config')
 const app = require('../../src/app')
+const email = require('../../src/lib/email')
 const { getNextVest } = require('../../src/shared')
 const { getBalance } = require('../../src/lib/balance')
 
@@ -109,7 +109,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should add a lockup', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
@@ -133,7 +133,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should add a early lockup', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
@@ -158,7 +158,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should add a early lockup using multiple vests occurring on same day', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
 
@@ -192,7 +192,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should add a lockup if enough tokens with matured lockups', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -242,7 +242,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should allow adding a lockup if early lockup exists with combined lockup amounts greater than balance', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
     const currency = 'OGN'
 
     const nextVest = getNextVest(
@@ -341,7 +341,7 @@ describe('Lockup HTTP API', () => {
   it('should add a lockup if unconfirmed lockup exists older than expiry', async () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -371,7 +371,7 @@ describe('Lockup HTTP API', () => {
   it('should add a lockup if confirmed lockup exists', async () => {
     const unlockFake = sinon.fake.returns(moment().subtract(1, 'days'))
     lockupController.__Rewire__('getUnlockDate', unlockFake)
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const currency = 'OGN'
 
@@ -537,7 +537,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should not add lockups simultaneously', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const results = await Promise.all([
       request(this.mockApp)
@@ -571,7 +571,7 @@ describe('Lockup HTTP API', () => {
   })
 
   it('should not add a transfer and lockup simultaneously if not enough balance', async () => {
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     const results = await Promise.all([
       request(this.mockApp)

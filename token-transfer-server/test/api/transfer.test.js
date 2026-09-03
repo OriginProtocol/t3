@@ -7,7 +7,6 @@ const sinon = require('sinon')
 const totp = require('notp').totp
 const base32 = require('thirty-two')
 const crypto = require('crypto')
-const sendgridMail = require('@sendgrid/mail')
 const jwt = require('jsonwebtoken')
 
 const { Grant, Transfer, User, sequelize } = require('../../src/models')
@@ -23,6 +22,7 @@ process.env.SESSION_SECRET = 'test'
 
 const { transferConfirmationTimeout } = require('../../src/config')
 const { encryptionSecret } = require('../../src/config')
+const email = require('../../src/lib/email')
 const app = require('../../src/app')
 
 const fromAddress = '0x627306090abaB3A6e1422e9345bC60c78a8BEf57'
@@ -179,7 +179,7 @@ describe('Transfer HTTP API', () => {
     const unlockFake = sinon.fake.returns(moment.utc().subtract(1, 'days'))
     transferController.__Rewire__('getUnlockDate', unlockFake)
 
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     await request(this.mockApp)
       .post('/api/transfers')
@@ -562,7 +562,7 @@ describe('Transfer HTTP API', () => {
 
     const otpCode = totp.gen(this.otpKey)
 
-    const sendStub = sinon.stub(sendgridMail, 'send')
+    const sendStub = sinon.stub(email, 'sendEmail').resolves()
 
     await request(this.mockApp)
       .post('/api/lockups')

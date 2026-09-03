@@ -1,8 +1,8 @@
 'use strict'
 
 const fs = require('fs')
+const fetch = require('node-fetch')
 const template = require('lodash/template')
-const sendgridMail = require('@sendgrid/mail')
 const jwt = require('jsonwebtoken')
 const mjml2html = require('mjml')
 const Sequelize = require('sequelize')
@@ -12,11 +12,12 @@ const {
   encryptionSecret,
   clientUrl,
   sendgridFromEmail,
-  sendgridApiKey
+  cloudflareAccount,
+  cloudflareBearerToken,
 } = require('../config')
 const logger = require('../logger')
 
-sendgridMail.setApiKey(sendgridApiKey)
+const emailUrl = `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccount}/email/sending/send"`
 
 // Load and compile the email templates.
 const templateDir = `${__dirname}/../templates`
@@ -131,12 +132,19 @@ function _generateEmail(emailType, vars) {
  */
 async function sendEmail(to, emailType, vars) {
   const { subject, text, html } = _generateEmail(emailType, vars)
-  await sendgridMail.send({
-    to,
-    from: sendgridFromEmail,
-    subject,
-    text,
-    html
+  await fetch(emailUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${cloudflareBearerToken}`
+    },
+    body: JSON.stringify({
+      to,
+      from: sendgridFromEmail,
+      subject,
+      text,
+      html
+    })
   })
 }
 

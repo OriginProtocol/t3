@@ -9,7 +9,7 @@ const {
   signer,
   createTokenContract,
 } = require('../config')
-const { sendEmail } = require('../lib/email')
+const email = require('../lib/email')
 const { postToWebhook } = require('./webhook')
 const {
   TRANSFER_DONE,
@@ -108,7 +108,7 @@ async function sendTransferConfirmationEmail(transfer, userId) {
     url: `${clientUrl}/withdrawal/${transfer.id}/${confirmationToken}`,
     employee: user.employee,
   }
-  await sendEmail(user.email, 'transfer', vars)
+  await email.sendEmail(user.email, 'transfer', vars)
 
   logger.info(
     `Sent email transfer confirmation token to ${user.email} for transfer ${transfer.id}`

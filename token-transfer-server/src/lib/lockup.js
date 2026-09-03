@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken')
 const Sequelize = require('sequelize')
 
 const { discordWebhookUrl } = require('../config')
-const { sendEmail } = require('../lib/email')
+const email = require('../lib/email')
 const { postToWebhook } = require('./webhook')
 const { LOCKUP_CONFIRMED, LOCKUP_REQUEST } = require('../constants/events')
 const { Event, Grant, Lockup, User, sequelize } = require('../models')
@@ -140,7 +140,7 @@ async function sendLockupConfirmationEmail(lockup, userId) {
     employee: user.employee,
   }
 
-  await sendEmail(user.email, 'lockup', vars)
+  await email.sendEmail(user.email, 'lockup', vars)
 
   logger.info(
     `Sent email lockup confirmation token to ${user.email} for lockup ${lockup.id}`
