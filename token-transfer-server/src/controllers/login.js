@@ -14,7 +14,7 @@ const { LOGIN } = require('../constants/events')
 const { encrypt } = require('../lib/crypto')
 const { Event } = require('../models')
 const logger = require('../logger')
-const { sendLoginToken } = require('../lib/email')
+const { sendLoginTokenInBackground } = require('../lib/email')
 const { ensureLoggedIn } = require('../lib/login')
 
 /**
@@ -26,9 +26,13 @@ router.post(
     const email = req.body.email
     logger.info(`Email token requested for ${email}`)
 
-    // No await to prevent enumeration of valid emails
+    // Do not await. Waiting would make the response time depend on whether
+    // the address is in the database and on the mail provider, which can be
+    // used to enumerate valid emails.
+    // sendLoginTokenInBackground catches send failures so they are logged
+    // instead of becoming an unhandled rejection (Node 16 exits on those).
     if (process.env.NODE_ENV !== 'test') {
-      sendLoginToken(email)
+      sendLoginTokenInBackground(email)
     }
 
     res.setHeader('Content-Type', 'application/json')
