@@ -40,16 +40,28 @@ const port = process.env.PORT || 5000
 const clientUrl =
   process.env.CLIENT_URL || 'https://investor.originprotocol.com/#'
 
-// Sendgrid configuration
-const sendgridFromEmail = process.env.SENDGRID_FROM_EMAIL
-if (!sendgridFromEmail) {
-  logger.error('SENDGRID_FROM_EMAIL must be set through EnvKey or manually')
+// Outbound email is Cloudflare Email Sending only.
+const mailFromEmail = (process.env.MAIL_FROM_EMAIL || '').trim()
+const mailFromName = (process.env.MAIL_FROM_NAME || '').trim()
+const cloudflareAccountId = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim()
+const cloudflareEmailApiToken = (
+  process.env.CLOUDFLARE_EMAIL_API_TOKEN || ''
+).trim()
+
+if (!mailFromEmail) {
+  logger.error('MAIL_FROM_EMAIL must be set through EnvKey or manually')
   process.exit(1)
 }
 
-const sendgridApiKey = process.env.SENDGRID_API_KEY
-if (!sendgridFromEmail) {
-  logger.error('SENDGRID_API_KEY must be set through EnvKey or manually')
+if (!cloudflareAccountId) {
+  logger.error('CLOUDFLARE_ACCOUNT_ID must be set through EnvKey or manually')
+  process.exit(1)
+}
+
+if (!cloudflareEmailApiToken) {
+  logger.error(
+    'CLOUDFLARE_EMAIL_API_TOKEN must be set through EnvKey or manually'
+  )
   process.exit(1)
 }
 
@@ -230,8 +242,10 @@ module.exports = {
   otcPartnerEmails,
   port,
   clientUrl,
-  sendgridFromEmail,
-  sendgridApiKey,
+  mailFromEmail,
+  mailFromName,
+  cloudflareAccountId,
+  cloudflareEmailApiToken,
   sessionSecret,
   unlockDate,
   largeTransferThreshold,

@@ -2,21 +2,13 @@
 
 const fs = require('fs')
 const template = require('lodash/template')
-const sendgridMail = require('@sendgrid/mail')
 const jwt = require('jsonwebtoken')
 const mjml2html = require('mjml')
 const Sequelize = require('sequelize')
 
-const { User } = require('../models')
-const {
-  encryptionSecret,
-  clientUrl,
-  sendgridFromEmail,
-  sendgridApiKey
-} = require('../config')
+const { encryptionSecret, clientUrl } = require('../config')
 const logger = require('../logger')
-
-sendgridMail.setApiKey(sendgridApiKey)
+const mailer = require('./mailer')
 
 // Load and compile the email templates.
 const templateDir = `${__dirname}/../templates`
@@ -131,16 +123,13 @@ function _generateEmail(emailType, vars) {
  */
 async function sendEmail(to, emailType, vars) {
   const { subject, text, html } = _generateEmail(emailType, vars)
-  await sendgridMail.send({
-    to,
-    from: sendgridFromEmail,
-    subject,
-    text,
-    html
-  })
+  await mailer.sendMail({ to, subject, text, html })
 }
 
 async function sendLoginToken(email) {
+  // Loaded lazily so a mail smoke test does not open a database connection.
+  const { User } = require('../models')
+
   // Check the user exists before sending an email code.
   const user = await User.findOne({
     where: {
@@ -173,4 +162,16 @@ async function sendLoginToken(email) {
   }
 }
 
-module.exports = { sendEmail, sendLoginToken }
+/**
+ * Fire-and-forget login email. The route does not await this, so a rejection
+ * here would be an unhandled rejection. Node 16's default is to terminate
+ * the process on one, which would also stop the in-process withdrawal job.
+ * Log and swallow instead.
+ */
+function sendLoginTokenInBackground(email) {
+  return sendLoginToken(email).catch(err => {
+    logger.error(`Failed to send login email for ${email}`, err)
+  })
+}
+
+module.exports = { sendEmail, sendLoginToken, sendLoginTokenInBackground }
