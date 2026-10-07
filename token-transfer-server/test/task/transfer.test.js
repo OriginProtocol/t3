@@ -17,6 +17,7 @@ const {
 const { encrypt } = require('../../src/lib/crypto')
 const enums = require('../../src/enums')
 const { executeTransfers } = require('../../src/tasks/transfer')
+const logger = require('../../src/logger')
 const {
   largeTransferThreshold,
   largeTransferDelayMinutes,
@@ -91,6 +92,48 @@ describe('Execute transfers', () => {
     }
   })
 
+  it('should warn and not insert a task when one is unfinished', async () => {
+    await TransferTask.create({
+      start: moment.utc(),
+    })
+
+    const warn = sinon.spy(logger, 'warn')
+    try {
+      await executeTransfers()
+    } finally {
+      warn.restore()
+    }
+
+    expect(
+      warn.calledWith('Found incomplete transfer task(s), unable to proceed.')
+    ).to.equal(true)
+    const transferTasks = await TransferTask.findAll()
+    expect(transferTasks.length).to.equal(1)
+    expect(transferTasks[0].end).to.equal(null)
+  })
+
+  it('should not create a transfer task on an idle run', async () => {
+    await executeTransfers()
+
+    const transferTasks = await TransferTask.findAll()
+    expect(transferTasks.length).to.equal(0)
+  })
+
+  it('should not create a transfer task when nothing is enqueued', async () => {
+    await Transfer.create({
+      userId: this.user.id,
+      status: enums.TransferStatuses.WaitingEmailConfirm,
+      toAddress: toAddress,
+      amount: 1,
+      currency: 'OGN',
+    })
+
+    await executeTransfers()
+
+    const transferTasks = await TransferTask.findAll()
+    expect(transferTasks.length).to.equal(0)
+  })
+
   it('should execute a small transfer immediately', async () => {
     const transfer = await Transfer.create({
       userId: this.user.id,
@@ -107,6 +150,7 @@ describe('Execute transfers', () => {
     expect(transfer.status).to.equal(enums.TransferStatuses.WaitingConfirmation)
 
     const transferTasks = await TransferTask.findAll()
+    expect(transferTasks.length).to.equal(1)
     expect(transferTasks[0].start).to.not.equal(null)
     expect(transferTasks[0].end).to.not.equal(null)
     expect(transfer.transferTaskId).to.equal(transferTasks[0].id)
@@ -155,8 +199,9 @@ describe('Execute transfers', () => {
     await executeTransfers()
 
     const transferTasks = await TransferTask.findAll()
-    expect(transferTasks[0].start).to.not.equal(null)
-    expect(transferTasks[0].end).to.not.equal(null)
+    expect(transferTasks.length).to.equal(0)
+    await transfer.reload()
+    expect(transfer.status).to.equal(enums.TransferStatuses.Enqueued)
     expect(transfer.transferTaskId).to.equal(null)
 
     clock.restore()
