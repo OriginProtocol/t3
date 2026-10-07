@@ -1,11 +1,11 @@
 'use strict'
 
 /**
- * Send one real login email through the configured provider.
+ * Send one real login email through Cloudflare Email Sending.
  *
  * Uses the same template and mail layer as production, with a dummy link
  * that is not a valid login token. Run it with the server's environment
- * (MAIL_PROVIDER and that provider's credentials) before flipping production.
+ * before relying on the cutover.
  *
  *   node src/scripts/send_test_email.js recipient@example.com
  */

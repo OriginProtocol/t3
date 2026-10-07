@@ -2,87 +2,53 @@ const chai = require('chai')
 const expect = chai.expect
 const http = require('http')
 const sinon = require('sinon')
-const sendgridMail = require('@sendgrid/mail')
 
 const mailer = require('../../src/lib/mailer')
-const { cloudflareAccountId, mailProvider } = require('../../src/config')
+const {
+  cloudflareAccountId,
+  cloudflareEmailApiToken,
+  mailFromEmail
+} = require('../../src/config')
 
 describe('mailer', () => {
-  it('uses sendgrid in the test process', () => {
-    expect(mailProvider).to.equal('sendgrid')
-  })
-
   describe('buildFromAddress', () => {
-    it('parses a legacy SendGrid from address for Cloudflare', () => {
-      const from = mailer.buildFromAddress({
-        provider: 'cloudflare',
-        mailFromEmail: '',
-        mailFromName: '',
-        legacyFrom: 'Origin Protocol <support@shoporigin.com>'
-      })
-      expect(from).to.deep.equal({
-        address: 'support@shoporigin.com',
-        name: 'Origin Protocol'
-      })
+    it('sends a bare address when no display name is configured', () => {
+      expect(mailer.buildFromAddress('welcome@yourdomain.com', '')).to.equal(
+        'welcome@yourdomain.com'
+      )
     })
 
-    it('passes a legacy SendGrid from string through unchanged', () => {
-      const legacyFrom = 'Origin Protocol <support@shoporigin.com>'
-      const from = mailer.buildFromAddress({
-        provider: 'sendgrid',
-        mailFromEmail: '',
-        mailFromName: '',
-        legacyFrom
-      })
-      expect(from).to.equal(legacyFrom)
-    })
-
-    it('uses MAIL_FROM_NAME with a legacy address for SendGrid', () => {
-      const from = mailer.buildFromAddress({
-        provider: 'sendgrid',
-        mailFromEmail: '',
-        mailFromName: 'Origin',
-        legacyFrom: 'support@shoporigin.com'
-      })
-      expect(from).to.deep.equal({
-        email: 'support@shoporigin.com',
-        name: 'Origin'
-      })
-    })
-
-    it('prefers MAIL_FROM_EMAIL and MAIL_FROM_NAME', () => {
-      const from = mailer.buildFromAddress({
-        provider: 'cloudflare',
-        mailFromEmail: 'welcome@yourdomain.com',
-        mailFromName: 'Origin',
-        legacyFrom: 'Origin Protocol <support@shoporigin.com>'
-      })
-      expect(from).to.deep.equal({
+    it('uses MAIL_FROM_NAME as the display name', () => {
+      expect(
+        mailer.buildFromAddress('welcome@yourdomain.com', 'Origin')
+      ).to.deep.equal({
         address: 'welcome@yourdomain.com',
         name: 'Origin'
       })
     })
 
-    it('sends a bare address when no display name is configured', () => {
+    it('parses a display name embedded in the from address', () => {
       expect(
-        mailer.buildFromAddress({
-          provider: 'cloudflare',
-          mailFromEmail: 'welcome@yourdomain.com',
-          mailFromName: '',
-          legacyFrom: ''
-        })
-      ).to.equal('welcome@yourdomain.com')
+        mailer.buildFromAddress(
+          'Origin Protocol <support@shoporigin.com>',
+          ''
+        )
+      ).to.deep.equal({
+        address: 'support@shoporigin.com',
+        name: 'Origin Protocol'
+      })
     })
 
-    it('strips quotes around a legacy display name', () => {
-      const from = mailer.buildFromAddress({
-        provider: 'cloudflare',
-        mailFromEmail: '',
-        mailFromName: '',
-        legacyFrom: '"Origin Protocol" <support@shoporigin.com>'
+    it('lets MAIL_FROM_NAME override an embedded display name', () => {
+      expect(
+        mailer.buildFromAddress(
+          '"Origin Protocol" <support@shoporigin.com>',
+          'Origin'
+        )
+      ).to.deep.equal({
+        address: 'support@shoporigin.com',
+        name: 'Origin'
       })
-      expect(from.name).to.equal('Origin Protocol')
-      expect(from.address).to.equal('support@shoporigin.com')
     })
   })
 
@@ -320,7 +286,9 @@ describe('mailer', () => {
       expect(url).to.equal(mailer.cloudflareSendUrl(cloudflareAccountId))
       expect(url).to.include('/client/v4/accounts/')
       expect(url).to.include('/email/sending/send')
-      expect(options.headers.Authorization).to.match(/^Bearer /)
+      expect(options.headers.Authorization).to.equal(
+        `Bearer ${cloudflareEmailApiToken}`
+      )
       expect(options.body).to.deep.equal({
         to: 'user@example.com',
         from: { address: 'welcome@yourdomain.com', name: 'Origin' },
@@ -361,24 +329,39 @@ describe('mailer', () => {
 
   describe('sendMail', () => {
     afterEach(() => {
-      if (sendgridMail.send.restore) sendgridMail.send.restore()
+      if (mailer.postJson.restore) mailer.postJson.restore()
     })
 
-    it('sends through SendGrid when that provider is selected', async () => {
-      const sendStub = sinon.stub(sendgridMail, 'send').resolves()
+    it('sends through Cloudflare Email Sending', async () => {
+      const postStub = sinon.stub(mailer, 'postJson').resolves({
+        statusCode: 200,
+        body: {
+          success: true,
+          errors: [],
+          result: {
+            delivered: ['user@example.com'],
+            permanent_bounces: [],
+            queued: []
+          }
+        }
+      })
       await mailer.sendMail({
         to: 'user@example.com',
         subject: 'Hello',
         text: 'text',
         html: '<p>html</p>'
       })
-      expect(sendStub.calledOnce).to.equal(true)
-      const message = sendStub.firstCall.args[0]
-      expect(message.to).to.equal('user@example.com')
-      expect(message.subject).to.equal('Hello')
-      expect(message.text).to.equal('text')
-      expect(message.html).to.equal('<p>html</p>')
-      expect(message.from).to.be.ok
+      expect(postStub.calledOnce).to.equal(true)
+      const [url, options] = postStub.firstCall.args
+      expect(url).to.equal(mailer.cloudflareSendUrl(cloudflareAccountId))
+      expect(options.headers.Authorization).to.equal(
+        `Bearer ${cloudflareEmailApiToken}`
+      )
+      expect(options.body.to).to.equal('user@example.com')
+      expect(options.body.subject).to.equal('Hello')
+      expect(options.body.text).to.equal('text')
+      expect(options.body.html).to.equal('<p>html</p>')
+      expect(options.body.from).to.equal(mailFromEmail)
     })
   })
 })

@@ -5,8 +5,6 @@ const express = require('express')
 
 const { User, Grant, sequelize } = require('../../src/models')
 
-process.env.SENDGRID_FROM_EMAIL = 'test@test.com'
-process.env.SENDGRID_API_KEY = 'test'
 process.env.ENCRYPTION_SECRET = 'test'
 process.env.SESSION_SECRET = 'test'
 

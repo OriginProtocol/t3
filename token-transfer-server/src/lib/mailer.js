@@ -3,14 +3,10 @@
 const http = require('http')
 const https = require('https')
 const { URL } = require('url')
-const sendgridMail = require('@sendgrid/mail')
 
 const {
-  mailProvider,
   mailFromEmail,
   mailFromName,
-  sendgridFromEmail,
-  sendgridApiKey,
   cloudflareAccountId,
   cloudflareEmailApiToken
 } = require('../config')
@@ -20,13 +16,11 @@ const {
 const CLOUDFLARE_API_ORIGIN = 'https://api.cloudflare.com'
 const CLOUDFLARE_SEND_TIMEOUT_MS = 20000
 
-let sendgridConfigured = false
-
 /**
- * Split "Name <addr@host>" (the form SENDGRID_FROM_EMAIL uses today) into
- * parts. A bare address is returned with an empty name.
+ * Split "Name <addr@host>" into parts. A bare address is returned with an
+ * empty name. MAIL_FROM_NAME overrides an embedded display name.
  */
-function parseLegacyFrom(raw) {
+function parseFrom(raw) {
   const trimmed = (raw || '').trim()
   if (!trimmed) {
     return { address: '', name: '' }
@@ -46,40 +40,19 @@ function parseLegacyFrom(raw) {
 }
 
 /**
- * From address for the active provider.
- * MAIL_FROM_EMAIL / MAIL_FROM_NAME win. Otherwise SENDGRID_FROM_EMAIL is
- * parsed so a cutover can keep the existing variable.
- * SendGrid wants {email, name}; Cloudflare wants {address, name}.
+ * Cloudflare `from`: a bare address, or {address, name} when a display name
+ * is set via MAIL_FROM_NAME or embedded in MAIL_FROM_EMAIL.
  */
-function buildFromAddress({
-  provider,
-  mailFromEmail: fromEmail,
-  mailFromName: fromName,
-  legacyFrom
-}) {
-  const explicit = parseLegacyFrom(fromEmail)
-  const legacy = parseLegacyFrom(legacyFrom)
-  const configuredName = (fromName || '').trim()
-  const address = explicit.address || legacy.address
-  const name = configuredName || explicit.name || legacy.name
-
-  if (!address) {
+function buildFromAddress(fromEmail, fromName) {
+  const parsed = parseFrom(fromEmail)
+  const name = (fromName || '').trim() || parsed.name
+  if (!parsed.address) {
     throw new Error('Missing from address')
   }
-
-  // Rollback path: with only SENDGRID_FROM_EMAIL set, pass that string
-  // through so SendGrid sees the same from value it does today.
-  if (provider === 'sendgrid' && !explicit.address && !configuredName) {
-    return legacyFrom
-  }
-
   if (!name) {
-    return address
+    return parsed.address
   }
-  if (provider === 'cloudflare') {
-    return { address, name }
-  }
-  return { email: address, name }
+  return { address: parsed.address, name }
 }
 
 function formatCloudflareErrors(body) {
@@ -206,31 +179,9 @@ async function sendViaCloudflare({ to, from, subject, text, html }) {
   interpretCloudflareResponse(response.statusCode, response.body, to)
 }
 
-async function sendViaSendgrid({ to, from, subject, text, html }) {
-  if (!sendgridConfigured) {
-    sendgridMail.setApiKey(sendgridApiKey)
-    sendgridConfigured = true
-  }
-  await sendgridMail.send({ to, from, subject, text, html })
-}
-
-/**
- * Send one message through the configured provider. Does not fail over to
- * the other provider.
- */
 async function sendMail({ to, subject, text, html }) {
-  const from = buildFromAddress({
-    provider: mailProvider,
-    mailFromEmail,
-    mailFromName,
-    legacyFrom: sendgridFromEmail
-  })
-
-  if (mailProvider === 'cloudflare') {
-    await sendViaCloudflare({ to, from, subject, text, html })
-    return
-  }
-  await sendViaSendgrid({ to, from, subject, text, html })
+  const from = buildFromAddress(mailFromEmail, mailFromName)
+  await sendViaCloudflare({ to, from, subject, text, html })
 }
 
 module.exports = {
@@ -238,7 +189,6 @@ module.exports = {
   sendViaCloudflare,
   buildFromAddress,
   interpretCloudflareResponse,
-  parseLegacyFrom,
   postJson,
   cloudflareSendUrl
 }

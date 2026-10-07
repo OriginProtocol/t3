@@ -27,8 +27,8 @@ router.post(
     logger.info(`Email token requested for ${email}`)
 
     // Do not await. Waiting would make the response time depend on whether
-    // the address is in the database and on the mail provider, which can be
-    // used to enumerate valid emails.
+    // the address is in the database and on how long the send takes, which
+    // can be used to enumerate valid emails.
     // sendLoginTokenInBackground catches send failures so they are logged
     // instead of becoming an unhandled rejection (Node 16 exits on those).
     if (process.env.NODE_ENV !== 'test') {

@@ -40,54 +40,29 @@ const port = process.env.PORT || 5000
 const clientUrl =
   process.env.CLIENT_URL || 'https://investor.originprotocol.com/#'
 
-// Outbound email. MAIL_PROVIDER is an explicit switch: "cloudflare" or
-// "sendgrid". There is no automatic failover (a fallback send could deliver
-// the same message twice). Unset defaults to sendgrid so existing
-// deployments keep working until they cut over.
-const mailProvider = (process.env.MAIL_PROVIDER || 'sendgrid')
-  .trim()
-  .toLowerCase()
+// Outbound email is Cloudflare Email Sending only.
 const mailFromEmail = (process.env.MAIL_FROM_EMAIL || '').trim()
 const mailFromName = (process.env.MAIL_FROM_NAME || '').trim()
-const sendgridFromEmail = (process.env.SENDGRID_FROM_EMAIL || '').trim()
-const sendgridApiKey = (process.env.SENDGRID_API_KEY || '').trim()
 const cloudflareAccountId = (process.env.CLOUDFLARE_ACCOUNT_ID || '').trim()
 const cloudflareEmailApiToken = (
   process.env.CLOUDFLARE_EMAIL_API_TOKEN || ''
 ).trim()
 
-if (mailProvider !== 'cloudflare' && mailProvider !== 'sendgrid') {
-  logger.error('MAIL_PROVIDER must be "cloudflare" or "sendgrid"')
+if (!mailFromEmail) {
+  logger.error('MAIL_FROM_EMAIL must be set through EnvKey or manually')
   process.exit(1)
 }
 
-// MAIL_FROM_EMAIL wins. SENDGRID_FROM_EMAIL remains accepted so a deploy can
-// move providers without renaming the existing from-address variable.
-if (!mailFromEmail && !sendgridFromEmail) {
+if (!cloudflareAccountId) {
+  logger.error('CLOUDFLARE_ACCOUNT_ID must be set through EnvKey or manually')
+  process.exit(1)
+}
+
+if (!cloudflareEmailApiToken) {
   logger.error(
-    'MAIL_FROM_EMAIL or SENDGRID_FROM_EMAIL must be set through EnvKey or manually'
+    'CLOUDFLARE_EMAIL_API_TOKEN must be set through EnvKey or manually'
   )
   process.exit(1)
-}
-
-if (mailProvider === 'sendgrid' && !sendgridApiKey) {
-  logger.error('SENDGRID_API_KEY must be set when MAIL_PROVIDER is sendgrid')
-  process.exit(1)
-}
-
-if (mailProvider === 'cloudflare') {
-  if (!cloudflareAccountId) {
-    logger.error(
-      'CLOUDFLARE_ACCOUNT_ID must be set when MAIL_PROVIDER is cloudflare'
-    )
-    process.exit(1)
-  }
-  if (!cloudflareEmailApiToken) {
-    logger.error(
-      'CLOUDFLARE_EMAIL_API_TOKEN must be set when MAIL_PROVIDER is cloudflare'
-    )
-    process.exit(1)
-  }
 }
 
 const sessionSecret = process.env.SESSION_SECRET
@@ -267,11 +242,8 @@ module.exports = {
   otcPartnerEmails,
   port,
   clientUrl,
-  mailProvider,
   mailFromEmail,
   mailFromName,
-  sendgridFromEmail,
-  sendgridApiKey,
   cloudflareAccountId,
   cloudflareEmailApiToken,
   sessionSecret,
