@@ -47,20 +47,9 @@ const sessionConfig = {
 if (app.get('env') === 'production') {
   app.set('trust proxy', 1) // trust first proxy
   sessionConfig.cookie.secure = true // serve secure cookies in production
-} else {
-  // CORS configuration for local development
-  app.use(
-    cors({
-      origin: 'http://localhost:3000',
-      credentials: true,
-      exposedHeaders: ['X-Authenticated-Email'],
-    })
-  )
-}
 
-// Configure CORS in Heroku, outside of Heroku this is handled by Kubernetes nginx ingress
-if (process.env.HEROKU) {
-  // Whitelisted domains
+  // Portal origins allowed to call the API with the session cookie.
+  // Express env is NODE_ENV, and defaults to development when it is unset.
   const corsWhitelist = [
     'https://investor.originprotocol.com',
     'https://team.originprotocol.com',
@@ -75,6 +64,15 @@ if (process.env.HEROKU) {
           callback(new Error('Not allowed by CORS'))
         }
       },
+      credentials: true,
+      exposedHeaders: ['X-Authenticated-Email'],
+    })
+  )
+} else {
+  // CORS configuration for local development
+  app.use(
+    cors({
+      origin: 'http://localhost:3000',
       credentials: true,
       exposedHeaders: ['X-Authenticated-Email'],
     })
