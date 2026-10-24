@@ -2,6 +2,9 @@
   "name": "@origin/token-transfer-client",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "24.22.1"
+  },
   "dependencies": {
     "@babel/core": "7.9.0",
     "@babel/plugin-proposal-class-properties": "^7.8.3",
@@ -75,11 +78,11 @@
     "webpack-subresource-integrity": "^1.4.0"
   },
   "scripts": {
-    "build": "NODE_ENV=production webpack",
+    "build": "NODE_OPTIONS=--openssl-legacy-provider NODE_ENV=production webpack",
     "lint": "eslint '**/*.js' && npm run prettier:check",
     "prettier": "prettier --write \"src/**/*.js\" \"test/**/*.js\"",
     "prettier:check": "prettier -c \"src/**/*.js\" \"test/**/*.js\"",
-    "start": "webpack-dev-server",
+    "start": "NODE_OPTIONS=--openssl-legacy-provider webpack-dev-server",
     "clean": "git clean -fd .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

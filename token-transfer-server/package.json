@@ -4,6 +4,9 @@
   "description": "API for Origin Investor Portal",
   "author": "Origin Protocol Inc",
   "license": "MIT",
+  "engines": {
+    "node": "24.22.1"
+  },
   "main": "app/app.js",
   "scripts": {
     "lint": "eslint '**/*.js' && npm run prettier:check",
