@@ -11,8 +11,8 @@ const {
   cloudflareEmailApiToken
 } = require('../config')
 
-// Cloudflare's Node SDK requires Node 18+. This server runs on Node 16, so
-// Email Sending is called over HTTP with the built-in client.
+// Email Sending is called over HTTP with Node's built-in client so this
+// process does not depend on the Cloudflare SDK.
 const CLOUDFLARE_API_ORIGIN = 'https://api.cloudflare.com'
 const CLOUDFLARE_SEND_TIMEOUT_MS = 20000
 

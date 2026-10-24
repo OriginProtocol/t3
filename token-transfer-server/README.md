@@ -26,8 +26,10 @@ There is no in-process mail fallback. Rolling back means redeploying the previou
 
 Setup 
 
+Node.js 24.22.1 is pinned in `.nvmrc` and in `package.json` `engines`.
+
 ```
-nvm install 10.15.3
+nvm install
 yarn install
 ```
 

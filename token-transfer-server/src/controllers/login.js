@@ -30,7 +30,7 @@ router.post(
     // the address is in the database and on how long the send takes, which
     // can be used to enumerate valid emails.
     // sendLoginTokenInBackground catches send failures so they are logged
-    // instead of becoming an unhandled rejection (Node 16 exits on those).
+    // instead of becoming an unhandled rejection (Node exits on those).
     if (process.env.NODE_ENV !== 'test') {
       sendLoginTokenInBackground(email)
     }

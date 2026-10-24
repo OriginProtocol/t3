@@ -164,7 +164,7 @@ async function sendLoginToken(email) {
 
 /**
  * Fire-and-forget login email. The route does not await this, so a rejection
- * here would be an unhandled rejection. Node 16's default is to terminate
+ * here would be an unhandled rejection. Node's default is to terminate
  * the process on one, which would also stop the in-process withdrawal job.
  * Log and swallow instead.
  */
